@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedTedarikcilerRouteImport } from './routes/_authenticated/tedarikciler'
 import { Route as AuthenticatedStokRouteImport } from './routes/_authenticated/stok'
 import { Route as AuthenticatedSatislarRouteImport } from './routes/_authenticated/satislar'
@@ -32,6 +33,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTerminalRoute = AuthenticatedTerminalRouteImport.update({
+  id: '/terminal',
+  path: '/terminal',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTedarikcilerRoute =
   AuthenticatedTedarikcilerRouteImport.update({
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/satislar': typeof AuthenticatedSatislarRoute
   '/stok': typeof AuthenticatedStokRoute
   '/tedarikciler': typeof AuthenticatedTedarikcilerRoute
+  '/terminal': typeof AuthenticatedTerminalRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/satislar': typeof AuthenticatedSatislarRoute
   '/stok': typeof AuthenticatedStokRoute
   '/tedarikciler': typeof AuthenticatedTedarikcilerRoute
+  '/terminal': typeof AuthenticatedTerminalRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/_authenticated/satislar': typeof AuthenticatedSatislarRoute
   '/_authenticated/stok': typeof AuthenticatedStokRoute
   '/_authenticated/tedarikciler': typeof AuthenticatedTedarikcilerRoute
+  '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/satislar'
     | '/stok'
     | '/tedarikciler'
+    | '/terminal'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/satislar'
     | '/stok'
     | '/tedarikciler'
+    | '/terminal'
   id:
     | '__root__'
     | '/'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/_authenticated/satislar'
     | '/_authenticated/stok'
     | '/_authenticated/tedarikciler'
+    | '/_authenticated/terminal'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -159,6 +171,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/terminal': {
+      id: '/_authenticated/terminal'
+      path: '/terminal'
+      fullPath: '/terminal'
+      preLoaderRoute: typeof AuthenticatedTerminalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tedarikciler': {
       id: '/_authenticated/tedarikciler'
@@ -212,6 +231,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSatislarRoute: typeof AuthenticatedSatislarRoute
   AuthenticatedStokRoute: typeof AuthenticatedStokRoute
   AuthenticatedTedarikcilerRoute: typeof AuthenticatedTedarikcilerRoute
+  AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -221,6 +241,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSatislarRoute: AuthenticatedSatislarRoute,
   AuthenticatedStokRoute: AuthenticatedStokRoute,
   AuthenticatedTedarikcilerRoute: AuthenticatedTedarikcilerRoute,
+  AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
