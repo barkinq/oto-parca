@@ -131,7 +131,7 @@ function SatislarPage() {
         <DialogTrigger asChild>
           <Button><Plus className="size-4 mr-1" /> Yeni Satış</Button>
         </DialogTrigger>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Yeni Satış Oluştur</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
