@@ -19,6 +19,7 @@ import { Route as AuthenticatedSatislarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRaporlarRouteImport } from './routes/_authenticated/raporlar'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedMusterilerRouteImport } from './routes/_authenticated/musteriler'
+import { Route as AuthenticatedBarkodRouteImport } from './routes/_authenticated/barkod'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -70,10 +71,16 @@ const AuthenticatedMusterilerRoute = AuthenticatedMusterilerRouteImport.update({
   path: '/musteriler',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBarkodRoute = AuthenticatedBarkodRouteImport.update({
+  id: '/barkod',
+  path: '/barkod',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/barkod': typeof AuthenticatedBarkodRoute
   '/musteriler': typeof AuthenticatedMusterilerRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/raporlar': typeof AuthenticatedRaporlarRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/barkod': typeof AuthenticatedBarkodRoute
   '/musteriler': typeof AuthenticatedMusterilerRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/raporlar': typeof AuthenticatedRaporlarRoute
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/barkod': typeof AuthenticatedBarkodRoute
   '/_authenticated/musteriler': typeof AuthenticatedMusterilerRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/_authenticated/raporlar': typeof AuthenticatedRaporlarRoute
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/barkod'
     | '/musteriler'
     | '/panel'
     | '/raporlar'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/barkod'
     | '/musteriler'
     | '/panel'
     | '/raporlar'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/barkod'
     | '/_authenticated/musteriler'
     | '/_authenticated/panel'
     | '/_authenticated/raporlar'
@@ -221,10 +233,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMusterilerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/barkod': {
+      id: '/_authenticated/barkod'
+      path: '/barkod'
+      fullPath: '/barkod'
+      preLoaderRoute: typeof AuthenticatedBarkodRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBarkodRoute: typeof AuthenticatedBarkodRoute
   AuthenticatedMusterilerRoute: typeof AuthenticatedMusterilerRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
   AuthenticatedRaporlarRoute: typeof AuthenticatedRaporlarRoute
@@ -235,6 +255,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBarkodRoute: AuthenticatedBarkodRoute,
   AuthenticatedMusterilerRoute: AuthenticatedMusterilerRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
   AuthenticatedRaporlarRoute: AuthenticatedRaporlarRoute,
