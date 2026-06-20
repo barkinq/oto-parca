@@ -124,7 +124,7 @@ function MusterilerPage() {
 
                 {expanded === c.id && (
                   <tr key={c.id + "-v"} className="bg-muted/30">
-                    <td colSpan={6} className="px-6 py-4">
+                    <td colSpan={7} className="px-6 py-4">
                       {c.vehicles?.length === 0 ? (
                         <p className="text-sm text-muted-foreground">Bu müşterinin kayıtlı aracı yok.</p>
                       ) : (
