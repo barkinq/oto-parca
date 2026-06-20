@@ -11,6 +11,8 @@ import {
   Search,
   LogOut,
   Wrench,
+  Terminal,
+  Barcode,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,11 +21,14 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/panel", label: "Panel", icon: LayoutDashboard },
   { to: "/stok", label: "Stok Yönetimi", icon: Package },
+  { to: "/terminal", label: "Toplu Stok Girişi", icon: Terminal },
+  { to: "/barkod", label: "Barkod Yazdır", icon: Barcode },
   { to: "/satislar", label: "Satışlar", icon: ShoppingCart },
   { to: "/musteriler", label: "Müşteriler", icon: Users },
   { to: "/tedarikciler", label: "Tedarikçiler", icon: Truck },
   { to: "/raporlar", label: "Raporlar", icon: BarChart3 },
 ] as const;
+
 
 export function AppShell({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   const navigate = useNavigate();
