@@ -1,0 +1,3 @@
+
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'kasiyer';
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'depocu';
