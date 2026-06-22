@@ -85,6 +85,17 @@ function AdminUsersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const createMut = useMutation({
+    mutationFn: () => fetchCreate({ data: newUser }),
+    onSuccess: () => {
+      toast.success("Kullanıcı oluşturuldu");
+      setCreateOpen(false);
+      setNewUser({ email: "", password: "", fullName: "", role: "kasiyer" });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   if (isAdmin === false) {
     return (
       <AppShell title="Kullanıcı Yönetimi">
