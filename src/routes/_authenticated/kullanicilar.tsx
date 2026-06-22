@@ -38,7 +38,15 @@ function AdminUsersPage() {
   const fetchUsers = useServerFn(listUsers);
   const fetchAssign = useServerFn(assignRole);
   const fetchActive = useServerFn(setUserActive);
+  const fetchCreate = useServerFn(createUser);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    email: "",
+    password: "",
+    fullName: "",
+    role: "kasiyer" as "admin" | "kasiyer" | "depocu" | "staff",
+  });
 
   useEffect(() => {
     (async () => {
