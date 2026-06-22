@@ -12,10 +12,15 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ShieldAlert, Check, X } from "lucide-react";
+import { ShieldAlert, Check, X, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { listUsers, assignRole, setUserActive } from "@/lib/admin.functions";
+import { listUsers, assignRole, setUserActive, createUser } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/kullanicilar")({
   component: AdminUsersPage,
