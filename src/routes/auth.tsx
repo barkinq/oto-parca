@@ -20,51 +20,30 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: fullName },
-          },
-        });
-        if (error) throw error;
-        await supabase.auth.signOut();
-        toast.success(
-          "Kayıt başarılı. Hesabınız yönetici onayını bekliyor. Onaylandığında giriş yapabilirsiniz.",
-          { duration: 6000 },
-        );
-        setMode("signin");
-        setPassword("");
-      } else {
-        const { data: sd, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        const uid = sd.user?.id;
-        if (uid) {
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("is_active")
-            .eq("id", uid)
-            .maybeSingle();
-          if (!prof?.is_active) {
-            await supabase.auth.signOut();
-            toast.error("Hesabınız henüz onaylanmamış. Lütfen yönetici onayını bekleyin.");
-            return;
-          }
+      const { data: sd, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      const uid = sd.user?.id;
+      if (uid) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("is_active")
+          .eq("id", uid)
+          .maybeSingle();
+        if (!prof?.is_active) {
+          await supabase.auth.signOut();
+          toast.error("Hesabınız aktif değil. Lütfen yönetici ile iletişime geçin.");
+          return;
         }
-        navigate({ to: "/panel" });
       }
+      navigate({ to: "/panel" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Bir hata oluştu");
     } finally {
@@ -99,7 +78,6 @@ function AuthPage() {
           </h1>
           <p className="mt-4 text-white/60 max-w-md">
             Stok, satış, müşteri, araç ve tedarikçi kayıtlarını tek bir panelde tutun.
-            Kritik stok uyarıları, günlük satış raporları ve daha fazlası.
           </p>
         </div>
         <div className="text-xs text-white/40">© {new Date().getFullYear()} OtoParça Sistemi</div>
@@ -114,11 +92,9 @@ function AuthPage() {
             <span className="font-bold text-lg">OtoParça</span>
           </div>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              {mode === "signin" ? "Giriş Yap" : "Hesap Oluştur"}
-            </h2>
+            <h2 className="text-2xl font-bold tracking-tight">Giriş Yap</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {mode === "signin" ? "Yönetim paneline erişin." : "Yeni bir hesap açın."}
+              Yönetim paneline erişin.
             </p>
           </div>
 
@@ -134,34 +110,21 @@ function AuthPage() {
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
-            {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Ad Soyad</Label>
-                <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="email">E-posta</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Şifre</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "..." : mode === "signin" ? "Giriş Yap" : "Hesap Oluştur"}
+              {loading ? "..." : "Giriş Yap"}
             </Button>
           </form>
 
-          <p className="text-sm text-center text-muted-foreground">
-            {mode === "signin" ? "Hesabınız yok mu?" : "Zaten hesabınız var mı?"}{" "}
-            <button
-              type="button"
-              className="text-primary font-medium hover:underline"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            >
-              {mode === "signin" ? "Kayıt olun" : "Giriş yapın"}
-            </button>
+          <p className="text-xs text-center text-muted-foreground">
+            Hesap oluşturma yetkisi yalnızca yöneticidedir.
           </p>
         </Card>
       </div>
