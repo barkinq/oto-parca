@@ -87,3 +87,38 @@ export const getMyAccess = createServerFn({ method: "POST" })
       isAdmin: (roles ?? []).some((r) => r.role === "admin"),
     };
   });
+
+export const createUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      email: z.string().email(),
+      password: z.string().min(1),
+      fullName: z.string().min(1),
+      role: z.enum(["admin", "staff", "kasiyer", "depocu"]),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: { full_name: data.fullName },
+    });
+    if (error) throw error;
+    const newId = created.user!.id;
+
+    await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: newId, full_name: data.fullName, is_active: true });
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", newId);
+    const { error: rErr } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: newId, role: data.role });
+    if (rErr) throw rErr;
+    return { ok: true, id: newId };
+  });
+
