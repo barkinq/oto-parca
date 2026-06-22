@@ -40,12 +40,31 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Hesap oluşturuldu. Yönlendiriliyorsunuz...");
+        await supabase.auth.signOut();
+        toast.success(
+          "Kayıt başarılı. Hesabınız yönetici onayını bekliyor. Onaylandığında giriş yapabilirsiniz.",
+          { duration: 6000 },
+        );
+        setMode("signin");
+        setPassword("");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: sd, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        const uid = sd.user?.id;
+        if (uid) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("is_active")
+            .eq("id", uid)
+            .maybeSingle();
+          if (!prof?.is_active) {
+            await supabase.auth.signOut();
+            toast.error("Hesabınız henüz onaylanmamış. Lütfen yönetici onayını bekleyin.");
+            return;
+          }
+        }
+        navigate({ to: "/panel" });
       }
-      navigate({ to: "/panel" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Bir hata oluştu");
     } finally {

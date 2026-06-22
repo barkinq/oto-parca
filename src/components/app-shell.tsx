@@ -13,20 +13,22 @@ import {
   Wrench,
   Terminal,
   Barcode,
+  ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/panel", label: "Panel", icon: LayoutDashboard },
-  { to: "/stok", label: "Stok Yönetimi", icon: Package },
-  { to: "/terminal", label: "Toplu Stok Girişi", icon: Terminal },
-  { to: "/barkod", label: "Barkod Yazdır", icon: Barcode },
-  { to: "/satislar", label: "Satışlar", icon: ShoppingCart },
-  { to: "/musteriler", label: "Müşteriler", icon: Users },
-  { to: "/tedarikciler", label: "Tedarikçiler", icon: Truck },
-  { to: "/raporlar", label: "Raporlar", icon: BarChart3 },
+  { to: "/panel", label: "Panel", icon: LayoutDashboard, adminOnly: false },
+  { to: "/stok", label: "Stok Yönetimi", icon: Package, adminOnly: false },
+  { to: "/terminal", label: "Toplu Stok Girişi", icon: Terminal, adminOnly: false },
+  { to: "/barkod", label: "Barkod Yazdır", icon: Barcode, adminOnly: false },
+  { to: "/satislar", label: "Satışlar", icon: ShoppingCart, adminOnly: false },
+  { to: "/musteriler", label: "Müşteriler", icon: Users, adminOnly: false },
+  { to: "/tedarikciler", label: "Tedarikçiler", icon: Truck, adminOnly: false },
+  { to: "/raporlar", label: "Raporlar", icon: BarChart3, adminOnly: false },
+  { to: "/kullanicilar", label: "Kullanıcılar", icon: ShieldCheck, adminOnly: true },
 ] as const;
 
 
@@ -35,6 +37,7 @@ export function AppShell({ title, children, action }: { title: string; children:
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -42,16 +45,30 @@ export function AppShell({ title, children, action }: { title: string; children:
       if (data.user) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("full_name")
+          .select("full_name, is_active")
           .eq("id", data.user.id)
           .maybeSingle();
+
+        // Force sign-out if deactivated
+        if (prof && prof.is_active === false) {
+          await supabase.auth.signOut();
+          navigate({ to: "/auth", replace: true });
+          return;
+        }
+
+        const { data: adminCheck } = await supabase.rpc("has_role", {
+          _user_id: data.user.id,
+          _role: "admin",
+        });
+        setIsAdmin(!!adminCheck);
+
         setUser({
           name: prof?.full_name || data.user.email || "Kullanıcı",
           email: data.user.email || "",
         });
       }
     })();
-  }, []);
+  }, [navigate]);
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -73,7 +90,7 @@ export function AppShell({ title, children, action }: { title: string; children:
         </div>
 
         <nav className="flex-1 px-4 space-y-1">
-          {navItems.map((item) => {
+          {navItems.filter((i) => !i.adminOnly || isAdmin).map((item) => {
             const active = pathname === item.to || (item.to !== "/panel" && pathname.startsWith(item.to));
             const Icon = item.icon;
             return (

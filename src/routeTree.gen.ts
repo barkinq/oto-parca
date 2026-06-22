@@ -19,6 +19,7 @@ import { Route as AuthenticatedSatislarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRaporlarRouteImport } from './routes/_authenticated/raporlar'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedMusterilerRouteImport } from './routes/_authenticated/musteriler'
+import { Route as AuthenticatedKullanicilarRouteImport } from './routes/_authenticated/kullanicilar'
 import { Route as AuthenticatedBarkodRouteImport } from './routes/_authenticated/barkod'
 
 const AuthRoute = AuthRouteImport.update({
@@ -71,6 +72,12 @@ const AuthenticatedMusterilerRoute = AuthenticatedMusterilerRouteImport.update({
   path: '/musteriler',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedKullanicilarRoute =
+  AuthenticatedKullanicilarRouteImport.update({
+    id: '/kullanicilar',
+    path: '/kullanicilar',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBarkodRoute = AuthenticatedBarkodRouteImport.update({
   id: '/barkod',
   path: '/barkod',
@@ -81,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/barkod': typeof AuthenticatedBarkodRoute
+  '/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/musteriler': typeof AuthenticatedMusterilerRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/raporlar': typeof AuthenticatedRaporlarRoute
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/barkod': typeof AuthenticatedBarkodRoute
+  '/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/musteriler': typeof AuthenticatedMusterilerRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/raporlar': typeof AuthenticatedRaporlarRoute
@@ -107,6 +116,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/barkod': typeof AuthenticatedBarkodRoute
+  '/_authenticated/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/_authenticated/musteriler': typeof AuthenticatedMusterilerRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/_authenticated/raporlar': typeof AuthenticatedRaporlarRoute
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/barkod'
+    | '/kullanicilar'
     | '/musteriler'
     | '/panel'
     | '/raporlar'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/barkod'
+    | '/kullanicilar'
     | '/musteriler'
     | '/panel'
     | '/raporlar'
@@ -146,6 +158,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/barkod'
+    | '/_authenticated/kullanicilar'
     | '/_authenticated/musteriler'
     | '/_authenticated/panel'
     | '/_authenticated/raporlar'
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMusterilerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/kullanicilar': {
+      id: '/_authenticated/kullanicilar'
+      path: '/kullanicilar'
+      fullPath: '/kullanicilar'
+      preLoaderRoute: typeof AuthenticatedKullanicilarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/barkod': {
       id: '/_authenticated/barkod'
       path: '/barkod'
@@ -245,6 +265,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBarkodRoute: typeof AuthenticatedBarkodRoute
+  AuthenticatedKullanicilarRoute: typeof AuthenticatedKullanicilarRoute
   AuthenticatedMusterilerRoute: typeof AuthenticatedMusterilerRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
   AuthenticatedRaporlarRoute: typeof AuthenticatedRaporlarRoute
@@ -256,6 +277,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBarkodRoute: AuthenticatedBarkodRoute,
+  AuthenticatedKullanicilarRoute: AuthenticatedKullanicilarRoute,
   AuthenticatedMusterilerRoute: AuthenticatedMusterilerRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
   AuthenticatedRaporlarRoute: AuthenticatedRaporlarRoute,
