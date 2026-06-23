@@ -21,6 +21,7 @@ import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedMusterilerRouteImport } from './routes/_authenticated/musteriler'
 import { Route as AuthenticatedKullanicilarRouteImport } from './routes/_authenticated/kullanicilar'
 import { Route as AuthenticatedBarkodRouteImport } from './routes/_authenticated/barkod'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -83,10 +84,16 @@ const AuthenticatedBarkodRoute = AuthenticatedBarkodRouteImport.update({
   path: '/barkod',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/barkod': typeof AuthenticatedBarkodRoute
   '/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/musteriler': typeof AuthenticatedMusterilerRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/barkod': typeof AuthenticatedBarkodRoute
   '/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/musteriler': typeof AuthenticatedMusterilerRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/barkod': typeof AuthenticatedBarkodRoute
   '/_authenticated/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/_authenticated/musteriler': typeof AuthenticatedMusterilerRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/admin'
     | '/barkod'
     | '/kullanicilar'
     | '/musteriler'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/admin'
     | '/barkod'
     | '/kullanicilar'
     | '/musteriler'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/admin'
     | '/_authenticated/barkod'
     | '/_authenticated/kullanicilar'
     | '/_authenticated/musteriler'
@@ -260,10 +272,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBarkodRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBarkodRoute: typeof AuthenticatedBarkodRoute
   AuthenticatedKullanicilarRoute: typeof AuthenticatedKullanicilarRoute
   AuthenticatedMusterilerRoute: typeof AuthenticatedMusterilerRoute
@@ -276,6 +296,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBarkodRoute: AuthenticatedBarkodRoute,
   AuthenticatedKullanicilarRoute: AuthenticatedKullanicilarRoute,
   AuthenticatedMusterilerRoute: AuthenticatedMusterilerRoute,
