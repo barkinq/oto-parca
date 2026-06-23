@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, History } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/stok")({ component: StokPage });
@@ -30,11 +30,21 @@ const empty: PartForm = {
   oem_code: "", barcode: "", vehicle_make: "", vehicle_model: "", vehicle_year_from: "", vehicle_year_to: "",
 };
 
+const typeLabel: Record<string, string> = {
+  satis: "Satış",
+  satin_alma: "Satın Alma",
+  manuel_giris: "Manuel Giriş",
+  iade: "İade",
+  iptal: "Satış İptali",
+};
+
 function StokPage() {
   const qc = useQueryClient();
   const businessId = useBusinessId();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedPart, setSelectedPart] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState<PartForm>(empty);
 
   const { data: parts = [] } = useQuery({
@@ -45,6 +55,20 @@ function StokPage() {
       const { data, error } = await query;
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: movements = [] } = useQuery({
+    queryKey: ["stock-movements", selectedPart?.id],
+    enabled: !!selectedPart?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("stock_movements")
+        .select("*")
+        .eq("part_id", selectedPart!.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      return data || [];
     },
   });
 
@@ -62,11 +86,34 @@ function StokPage() {
         vehicle_year_to: form.vehicle_year_to ? Number(form.vehicle_year_to) : null,
       };
       if (form.id) {
+        // Stok değişti mi kontrol et
+        const { data: old } = await supabase.from("parts").select("stock").eq("id", form.id).single();
         const { error } = await supabase.from("parts").update(payload).eq("id", form.id);
         if (error) throw error;
+        // Stok değiştiyse hareket kaydı ekle
+        if (old && old.stock !== Number(form.stock)) {
+          const diff = Number(form.stock) - old.stock;
+          await supabase.from("stock_movements").insert({
+            business_id: businessId,
+            part_id: form.id,
+            type: "manuel_giris",
+            qty: diff,
+            note: `Manuel stok düzeltmesi (${old.stock} → ${form.stock})`,
+          });
+        }
       } else {
-        const { error } = await supabase.from("parts").insert({ ...payload, business_id: businessId });
+        const { data: newPart, error } = await supabase.from("parts").insert({ ...payload, business_id: businessId }).select().single();
         if (error) throw error;
+        // İlk stok girişi kaydı
+        if (Number(form.stock) > 0 && newPart) {
+          await supabase.from("stock_movements").insert({
+            business_id: businessId,
+            part_id: newPart.id,
+            type: "manuel_giris",
+            qty: Number(form.stock),
+            note: "İlk stok girişi",
+          });
+        }
       }
     },
     onSuccess: () => {
@@ -88,6 +135,11 @@ function StokPage() {
       vehicle_year_to: p.vehicle_year_to ? String(p.vehicle_year_to) : "",
     });
     setOpen(true);
+  };
+
+  const openHistory = (p: any) => {
+    setSelectedPart({ id: p.id, name: p.name });
+    setHistoryOpen(true);
   };
 
   return (
@@ -162,7 +214,14 @@ function StokPage() {
                     <span className={`font-mono text-sm ${p.stock <= p.min_stock ? "text-destructive font-bold" : ""}`}>{p.stock}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => edit(p)}><Pencil className="size-4" /></Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => openHistory(p)} title="Stok Geçmişi">
+                        <History className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => edit(p)}>
+                        <Pencil className="size-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -170,6 +229,53 @@ function StokPage() {
           </table>
         </Card>
       </div>
+
+      {/* Stok Hareketi Geçmişi Dialog */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Stok Geçmişi — {selectedPart?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {movements.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">Henüz stok hareketi yok.</p>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs text-muted-foreground uppercase border-b">
+                  <tr>
+                    <th className="pb-2">Tarih</th>
+                    <th className="pb-2">İşlem</th>
+                    <th className="pb-2 text-right">Miktar</th>
+                    <th className="pb-2">Not</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {movements.map((m: any) => (
+                    <tr key={m.id} className="hover:bg-muted/30">
+                      <td className="py-2 text-muted-foreground text-xs">
+                        {new Date(m.created_at).toLocaleString("tr-TR")}
+                      </td>
+                      <td className="py-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          m.type === "satis" || m.type === "iptal" ? "bg-red-100 text-red-700" :
+                          m.type === "satin_alma" || m.type === "manuel_giris" ? "bg-emerald-100 text-emerald-700" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {typeLabel[m.type] || m.type}
+                        </span>
+                      </td>
+                      <td className={`py-2 text-right font-mono font-bold ${m.qty > 0 ? "text-emerald-600" : "text-destructive"}`}>
+                        {m.qty > 0 ? `+${m.qty}` : m.qty}
+                      </td>
+                      <td className="py-2 text-xs text-muted-foreground">{m.note || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

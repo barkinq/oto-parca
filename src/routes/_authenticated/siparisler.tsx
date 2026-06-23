@@ -112,6 +112,18 @@ function SiparislerPage() {
           .eq("id", item.part_id);
         if (error) throw error;
       }
+      // Stok hareketi kayıtları
+      const movements = po.purchase_order_items.map((item: any) => ({
+        business_id: item.business_id || po.business_id,
+        part_id: item.part_id,
+        type: "satin_alma",
+        qty: item.qty,
+        note: `Satın alma #${String(po.po_no).padStart(5, "0")}`,
+        ref_id: po.id,
+      }));
+      if (movements.length > 0) {
+        await supabase.from("stock_movements").insert(movements);
+      }
       // Siparişi teslim alındı yap
       const { error } = await supabase
         .from("purchase_orders")
