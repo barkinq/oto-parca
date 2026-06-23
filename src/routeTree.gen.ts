@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTerminalRouteImport } from './routes/_authenticated/terminal'
 import { Route as AuthenticatedTedarikcilerRouteImport } from './routes/_authenticated/tedarikciler'
 import { Route as AuthenticatedStokRouteImport } from './routes/_authenticated/stok'
+import { Route as AuthenticatedSiparislerRouteImport } from './routes/_authenticated/siparisler'
 import { Route as AuthenticatedSatislarRouteImport } from './routes/_authenticated/satislar'
 import { Route as AuthenticatedRaporlarRouteImport } from './routes/_authenticated/raporlar'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
@@ -51,6 +52,11 @@ const AuthenticatedTedarikcilerRoute =
 const AuthenticatedStokRoute = AuthenticatedStokRouteImport.update({
   id: '/stok',
   path: '/stok',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSiparislerRoute = AuthenticatedSiparislerRouteImport.update({
+  id: '/siparisler',
+  path: '/siparisler',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSatislarRoute = AuthenticatedSatislarRouteImport.update({
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/panel': typeof AuthenticatedPanelRoute
   '/raporlar': typeof AuthenticatedRaporlarRoute
   '/satislar': typeof AuthenticatedSatislarRoute
+  '/siparisler': typeof AuthenticatedSiparislerRoute
   '/stok': typeof AuthenticatedStokRoute
   '/tedarikciler': typeof AuthenticatedTedarikcilerRoute
   '/terminal': typeof AuthenticatedTerminalRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/panel': typeof AuthenticatedPanelRoute
   '/raporlar': typeof AuthenticatedRaporlarRoute
   '/satislar': typeof AuthenticatedSatislarRoute
+  '/siparisler': typeof AuthenticatedSiparislerRoute
   '/stok': typeof AuthenticatedStokRoute
   '/tedarikciler': typeof AuthenticatedTedarikcilerRoute
   '/terminal': typeof AuthenticatedTerminalRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/_authenticated/raporlar': typeof AuthenticatedRaporlarRoute
   '/_authenticated/satislar': typeof AuthenticatedSatislarRoute
+  '/_authenticated/siparisler': typeof AuthenticatedSiparislerRoute
   '/_authenticated/stok': typeof AuthenticatedStokRoute
   '/_authenticated/tedarikciler': typeof AuthenticatedTedarikcilerRoute
   '/_authenticated/terminal': typeof AuthenticatedTerminalRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/panel'
     | '/raporlar'
     | '/satislar'
+    | '/siparisler'
     | '/stok'
     | '/tedarikciler'
     | '/terminal'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/panel'
     | '/raporlar'
     | '/satislar'
+    | '/siparisler'
     | '/stok'
     | '/tedarikciler'
     | '/terminal'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/_authenticated/panel'
     | '/_authenticated/raporlar'
     | '/_authenticated/satislar'
+    | '/_authenticated/siparisler'
     | '/_authenticated/stok'
     | '/_authenticated/tedarikciler'
     | '/_authenticated/terminal'
@@ -228,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/stok'
       fullPath: '/stok'
       preLoaderRoute: typeof AuthenticatedStokRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/siparisler': {
+      id: '/_authenticated/siparisler'
+      path: '/siparisler'
+      fullPath: '/siparisler'
+      preLoaderRoute: typeof AuthenticatedSiparislerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/satislar': {
@@ -290,6 +309,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
   AuthenticatedRaporlarRoute: typeof AuthenticatedRaporlarRoute
   AuthenticatedSatislarRoute: typeof AuthenticatedSatislarRoute
+  AuthenticatedSiparislerRoute: typeof AuthenticatedSiparislerRoute
   AuthenticatedStokRoute: typeof AuthenticatedStokRoute
   AuthenticatedTedarikcilerRoute: typeof AuthenticatedTedarikcilerRoute
   AuthenticatedTerminalRoute: typeof AuthenticatedTerminalRoute
@@ -303,6 +323,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
   AuthenticatedRaporlarRoute: AuthenticatedRaporlarRoute,
   AuthenticatedSatislarRoute: AuthenticatedSatislarRoute,
+  AuthenticatedSiparislerRoute: AuthenticatedSiparislerRoute,
   AuthenticatedStokRoute: AuthenticatedStokRoute,
   AuthenticatedTedarikcilerRoute: AuthenticatedTedarikcilerRoute,
   AuthenticatedTerminalRoute: AuthenticatedTerminalRoute,

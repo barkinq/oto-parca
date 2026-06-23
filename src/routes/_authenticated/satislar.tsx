@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, ShoppingCart } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/satislar")({ component: SatislarPage });
@@ -19,6 +19,105 @@ const fmt = (n: number) => new Intl.NumberFormat("tr-TR", { style: "currency", c
 
 type Line = { part_id: string; name: string; sku: string; qty: number; unit_price: number };
 type PaymentType = "nakit" | "kart" | "veresiye";
+
+async function printReceipt(saleId: string) {
+  const { data: sale } = await supabase
+    .from("sales")
+    .select("*, customers(full_name, phone), vehicles(plate, make, model), sale_items(qty, unit_price, parts(name, sku))")
+    .eq("id", saleId)
+    .single();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("businesses(name, phone, address)")
+    .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .single();
+
+  const biz = (profile as any)?.businesses;
+  const s = sale as any;
+  if (!s) return;
+
+  const lines = s.sale_items?.map((i: any) => `
+    <tr>
+      <td style="padding:4px 8px;border-bottom:1px solid #eee">${i.parts?.name}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center">${i.qty}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right">${fmt(Number(i.unit_price))}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right">${fmt(i.qty * Number(i.unit_price))}</td>
+    </tr>
+  `).join("") ?? "";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Fiş #${String(s.sale_no).padStart(5, "0")}</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 13px; color: #111; padding: 24px; max-width: 480px; margin: auto; }
+        h1 { font-size: 20px; margin-bottom: 2px; }
+        .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
+        .divider { border: none; border-top: 1px dashed #ccc; margin: 12px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 4px 8px; background: #f5f5f5; font-size: 11px; text-transform: uppercase; }
+        th:nth-child(2), th:nth-child(3), th:nth-child(4) { text-align: center; }
+        th:nth-child(4) { text-align: right; }
+        .total-row { display: flex; justify-content: space-between; padding: 3px 0; }
+        .total-row.grand { font-weight: bold; font-size: 15px; margin-top: 6px; border-top: 2px solid #111; padding-top: 6px; }
+        .footer { margin-top: 24px; text-align: center; color: #888; font-size: 11px; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <h1>${biz?.name ?? "OtoParça"}</h1>
+      ${biz?.phone ? `<div class="sub">${biz.phone}${biz?.address ? " · " + biz.address : ""}</div>` : ""}
+      <hr class="divider">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div><strong>Fiş No:</strong> #${String(s.sale_no).padStart(5, "0")}</div>
+          <div><strong>Tarih:</strong> ${new Date(s.created_at).toLocaleString("tr-TR")}</div>
+          <div><strong>Ödeme:</strong> ${s.payment_type === "nakit" ? "Nakit" : s.payment_type === "kart" ? "Kredi Kartı" : "Veresiye"}</div>
+        </div>
+        ${s.customers ? `<div style="text-align:right">
+          <div><strong>${s.customers.full_name}</strong></div>
+          ${s.customers.phone ? `<div>${s.customers.phone}</div>` : ""}
+          ${s.vehicles ? `<div>${s.vehicles.plate} ${s.vehicles.make} ${s.vehicles.model}</div>` : ""}
+        </div>` : ""}
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Ürün</th>
+            <th style="text-align:center">Adet</th>
+            <th style="text-align:center">Birim</th>
+            <th style="text-align:right">Tutar</th>
+          </tr>
+        </thead>
+        <tbody>${lines}</tbody>
+      </table>
+      <hr class="divider">
+      <div style="max-width:220px;margin-left:auto">
+        ${Number(s.discount) > 0 ? `
+        <div class="total-row"><span>Ara Toplam</span><span>${fmt(Number(s.total) + Number(s.discount))}</span></div>
+        <div class="total-row" style="color:#c00"><span>İndirim</span><span>-${fmt(Number(s.discount))}</span></div>
+        ` : ""}
+        <div class="total-row grand"><span>TOPLAM</span><span>${fmt(Number(s.total))}</span></div>
+        ${s.payment_type === "veresiye" && Number(s.paid_amount) > 0 ? `
+        <div class="total-row"><span>Ödenen</span><span>${fmt(Number(s.paid_amount))}</span></div>
+        <div class="total-row" style="color:#c00"><span>Kalan Borç</span><span>${fmt(Number(s.total) - Number(s.paid_amount))}</span></div>
+        ` : ""}
+      </div>
+      ${s.notes ? `<div style="margin-top:12px;font-size:12px;color:#666">Not: ${s.notes}</div>` : ""}
+      <div class="footer">Teşekkür ederiz · OtoParça Sistemi</div>
+      <script>window.onload = () => { window.print(); }</script>
+    </body>
+    </html>
+  `;
+
+  const w = window.open("", "_blank", "width=520,height=700");
+  w?.document.write(html);
+  w?.document.close();
+}
 
 function SatislarPage() {
   const qc = useQueryClient();
@@ -38,7 +137,7 @@ function SatislarPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id, sale_no, total, status, created_at, customers(full_name), vehicles(plate)")
+        .select("id, sale_no, total, status, payment_type, created_at, customers(full_name), vehicles(plate)")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -113,8 +212,9 @@ function SatislarPage() {
       }));
       const { error: e2 } = await supabase.from("sale_items").insert(items);
       if (e2) throw e2;
+      return sale;
     },
-    onSuccess: () => {
+    onSuccess: (sale) => {
       toast.success(outstanding > 0 ? `Satış kaydedildi. Veresiye: ${fmt(outstanding)}` : "Satış kaydedildi");
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
@@ -122,6 +222,8 @@ function SatislarPage() {
       qc.invalidateQueries({ queryKey: ["customers"] });
       setOpen(false); setLines([]); setCustomerId(""); setVehicleId(""); setNotes("");
       setDiscount("0"); setPaymentType("nakit"); setPaidAmount("");
+      // Fişi otomatik aç
+      setTimeout(() => printReceipt(sale.id), 500);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -253,12 +355,14 @@ function SatislarPage() {
               <th className="px-6 py-4">Müşteri</th>
               <th className="px-6 py-4">Araç</th>
               <th className="px-6 py-4 text-right">Tutar</th>
+              <th className="px-6 py-4">Ödeme</th>
               <th className="px-6 py-4">Durum</th>
+              <th className="px-6 py-4"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {sales.length === 0 && (
-              <tr><td colSpan={6} className="px-6 py-16 text-center">
+              <tr><td colSpan={8} className="px-6 py-16 text-center">
                 <ShoppingCart className="size-10 mx-auto text-muted-foreground/40 mb-2" />
                 <p className="text-sm text-muted-foreground">Henüz satış kaydı yok.</p>
               </td></tr>
@@ -270,10 +374,18 @@ function SatislarPage() {
                 <td className="px-6 py-4 text-sm">{s.customers?.full_name || "—"}</td>
                 <td className="px-6 py-4 text-sm text-muted-foreground">{s.vehicles?.plate || "—"}</td>
                 <td className="px-6 py-4 text-right font-semibold">{fmt(Number(s.total))}</td>
+                <td className="px-6 py-4 text-sm text-muted-foreground">
+                  {s.payment_type === "nakit" ? "Nakit" : s.payment_type === "kart" ? "Kart" : "Veresiye"}
+                </td>
                 <td className="px-6 py-4">
                   <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
                     s.status === "tamamlandi" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                   }`}>{s.status}</span>
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <Button variant="ghost" size="sm" onClick={() => printReceipt(s.id)}>
+                    <Printer className="size-4" />
+                  </Button>
                 </td>
               </tr>
             ))}

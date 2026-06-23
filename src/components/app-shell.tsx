@@ -25,6 +25,7 @@ const navItems = [
   { to: "/terminal", label: "Toplu Stok Girişi", icon: Terminal, adminOnly: false },
   { to: "/barkod", label: "Barkod Yazdır", icon: Barcode, adminOnly: false },
   { to: "/satislar", label: "Satışlar", icon: ShoppingCart, adminOnly: false },
+  { to: "/siparisler", label: "Satın Alma", icon: Truck, adminOnly: false },
   { to: "/musteriler", label: "Müşteriler", icon: Users, adminOnly: false },
   { to: "/tedarikciler", label: "Tedarikçiler", icon: Truck, adminOnly: false },
   { to: "/raporlar", label: "Raporlar", icon: BarChart3, adminOnly: false },
