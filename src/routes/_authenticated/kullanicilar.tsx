@@ -33,7 +33,7 @@ const ROLE_LABELS: Record<string, string> = {
   staff: "Personel",
 };
 
-function AdminUsersPage() {
+export function AdminUsersPage() {
   const qc = useQueryClient();
   const fetchUsers = useServerFn(listUsers);
   const fetchAssign = useServerFn(assignRole);
