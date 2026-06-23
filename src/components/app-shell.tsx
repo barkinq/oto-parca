@@ -14,6 +14,7 @@ import {
   Terminal,
   Barcode,
   ShieldCheck,
+  Settings,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ const navItems = [
   { to: "/tedarikciler", label: "Tedarikçiler", icon: Truck, adminOnly: false },
   { to: "/raporlar", label: "Raporlar", icon: BarChart3, adminOnly: false },
   { to: "/kullanicilar", label: "Kullanıcılar", icon: ShieldCheck, adminOnly: true },
+  { to: "/ayarlar", label: "Ayarlar", icon: Settings, adminOnly: true },
 ] as const;
 
 
@@ -38,6 +40,7 @@ export function AppShell({ title, children, action }: { title: string; children:
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [businessName, setBusinessName] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -46,7 +49,7 @@ export function AppShell({ title, children, action }: { title: string; children:
       if (data.user) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("full_name, is_active")
+          .select("full_name, is_active, business_id, businesses(name)")
           .eq("id", data.user.id)
           .maybeSingle();
 
@@ -63,6 +66,8 @@ export function AppShell({ title, children, action }: { title: string; children:
         });
         setIsAdmin(!!adminCheck);
 
+        const biz = prof?.businesses as { name: string } | null;
+        setBusinessName(biz?.name || null);
         setUser({
           name: prof?.full_name || data.user.email || "Kullanıcı",
           email: data.user.email || "",
@@ -86,7 +91,12 @@ export function AppShell({ title, children, action }: { title: string; children:
             <div className="size-8 bg-brand-primary rounded grid place-items-center font-bold text-white">
               <Wrench className="size-4" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight">OtoParça</h1>
+            <div className="overflow-hidden">
+              <h1 className="text-base font-bold tracking-tight leading-tight">OtoParça</h1>
+              {businessName && (
+                <p className="text-[11px] text-white/50 truncate">{businessName}</p>
+              )}
+            </div>
           </Link>
         </div>
 

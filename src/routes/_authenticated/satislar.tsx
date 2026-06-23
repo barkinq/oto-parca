@@ -30,7 +30,7 @@ async function printReceipt(saleId: string) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("businesses(name, phone, address)")
+    .select("businesses(name, phone, address, tax_no)")
     .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
     .single();
 
@@ -55,6 +55,7 @@ async function printReceipt(saleId: string) {
     .footer{margin-top:24px;text-align:center;color:#888;font-size:11px}@media print{body{padding:0}}</style></head><body>
     <h1>${biz?.name ?? "OtoParça"}</h1>
     ${biz?.phone ? `<div class="sub">${biz.phone}${biz?.address ? " · " + biz.address : ""}</div>` : ""}
+    ${biz?.tax_no ? `<div class="sub" style="font-size:11px">Vergi No: ${biz.tax_no}</div>` : ""}
     <hr class="divider">
     <div style="display:flex;justify-content:space-between;margin-bottom:12px">
       <div><div><strong>Fiş No:</strong> #${String(s.sale_no).padStart(5, "0")}</div>
