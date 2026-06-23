@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, ShoppingCart, Printer } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Plus, Trash2, ShoppingCart, Printer, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/satislar")({ component: SatislarPage });
@@ -21,23 +22,23 @@ type Line = { part_id: string; name: string; sku: string; qty: number; unit_pric
 type PaymentType = "nakit" | "kart" | "veresiye";
 
 async function printReceipt(saleId: string) {
-  const { data: sale } = await supabase
-    .from("sales")
-    .select("*, customers(full_name, phone), vehicles(plate, make, model), sale_items(qty, unit_price, parts(name, sku))")
-    .eq("id", saleId)
-    .single();
+    const { data: sale } = await supabase
+        .from("sales")
+        .select("*, customers(full_name, phone), vehicles(plate, make, model), sale_items(qty, unit_price, parts(name, sku))")
+        .eq("id", saleId)
+        .single();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("businesses(name, phone, address)")
-    .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
-    .single();
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("businesses(name, phone, address)")
+        .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .single();
 
-  const biz = (profile as any)?.businesses;
-  const s = sale as any;
-  if (!s) return;
+    const biz = (profile as any)?.businesses;
+    const s = sale as any;
+    if (!s) return;
 
-  const lines = s.sale_items?.map((i: any) => `
+    const lines = s.sale_items?.map((i: any) => `
     <tr>
       <td style="padding:4px 8px;border-bottom:1px solid #eee">${i.parts?.name}</td>
       <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center">${i.qty}</td>
@@ -46,352 +47,410 @@ async function printReceipt(saleId: string) {
     </tr>
   `).join("") ?? "";
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Fiş #${String(s.sale_no).padStart(5, "0")}</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; font-size: 13px; color: #111; padding: 24px; max-width: 480px; margin: auto; }
-        h1 { font-size: 20px; margin-bottom: 2px; }
-        .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
-        .divider { border: none; border-top: 1px dashed #ccc; margin: 12px 0; }
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 4px 8px; background: #f5f5f5; font-size: 11px; text-transform: uppercase; }
-        th:nth-child(2), th:nth-child(3), th:nth-child(4) { text-align: center; }
-        th:nth-child(4) { text-align: right; }
-        .total-row { display: flex; justify-content: space-between; padding: 3px 0; }
-        .total-row.grand { font-weight: bold; font-size: 15px; margin-top: 6px; border-top: 2px solid #111; padding-top: 6px; }
-        .footer { margin-top: 24px; text-align: center; color: #888; font-size: 11px; }
-        @media print { body { padding: 0; } }
-      </style>
-    </head>
-    <body>
-      <h1>${biz?.name ?? "OtoParça"}</h1>
-      ${biz?.phone ? `<div class="sub">${biz.phone}${biz?.address ? " · " + biz.address : ""}</div>` : ""}
-      <hr class="divider">
-      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-        <div>
-          <div><strong>Fiş No:</strong> #${String(s.sale_no).padStart(5, "0")}</div>
-          <div><strong>Tarih:</strong> ${new Date(s.created_at).toLocaleString("tr-TR")}</div>
-          <div><strong>Ödeme:</strong> ${s.payment_type === "nakit" ? "Nakit" : s.payment_type === "kart" ? "Kredi Kartı" : "Veresiye"}</div>
-        </div>
-        ${s.customers ? `<div style="text-align:right">
-          <div><strong>${s.customers.full_name}</strong></div>
-          ${s.customers.phone ? `<div>${s.customers.phone}</div>` : ""}
-          ${s.vehicles ? `<div>${s.vehicles.plate} ${s.vehicles.make} ${s.vehicles.model}</div>` : ""}
-        </div>` : ""}
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Ürün</th>
-            <th style="text-align:center">Adet</th>
-            <th style="text-align:center">Birim</th>
-            <th style="text-align:right">Tutar</th>
-          </tr>
-        </thead>
-        <tbody>${lines}</tbody>
-      </table>
-      <hr class="divider">
-      <div style="max-width:220px;margin-left:auto">
-        ${Number(s.discount) > 0 ? `
-        <div class="total-row"><span>Ara Toplam</span><span>${fmt(Number(s.total) + Number(s.discount))}</span></div>
-        <div class="total-row" style="color:#c00"><span>İndirim</span><span>-${fmt(Number(s.discount))}</span></div>
-        ` : ""}
-        <div class="total-row grand"><span>TOPLAM</span><span>${fmt(Number(s.total))}</span></div>
-        ${s.payment_type === "veresiye" && Number(s.paid_amount) > 0 ? `
-        <div class="total-row"><span>Ödenen</span><span>${fmt(Number(s.paid_amount))}</span></div>
-        <div class="total-row" style="color:#c00"><span>Kalan Borç</span><span>${fmt(Number(s.total) - Number(s.paid_amount))}</span></div>
-        ` : ""}
-      </div>
-      ${s.notes ? `<div style="margin-top:12px;font-size:12px;color:#666">Not: ${s.notes}</div>` : ""}
-      <div class="footer">Teşekkür ederiz · OtoParça Sistemi</div>
-      <script>window.onload = () => { window.print(); }</script>
-    </body>
-    </html>
-  `;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fiş #${String(s.sale_no).padStart(5, "0")}</title>
+    <style>* { margin:0;padding:0;box-sizing:border-box } body{font-family:Arial,sans-serif;font-size:13px;color:#111;padding:24px;max-width:480px;margin:auto}
+    h1{font-size:20px;margin-bottom:2px}.sub{color:#666;font-size:12px;margin-bottom:16px}.divider{border:none;border-top:1px dashed #ccc;margin:12px 0}
+    table{width:100%;border-collapse:collapse}th{text-align:left;padding:4px 8px;background:#f5f5f5;font-size:11px;text-transform:uppercase}
+    .total-row{display:flex;justify-content:space-between;padding:3px 0}.total-row.grand{font-weight:bold;font-size:15px;margin-top:6px;border-top:2px solid #111;padding-top:6px}
+    .footer{margin-top:24px;text-align:center;color:#888;font-size:11px}@media print{body{padding:0}}</style></head><body>
+    <h1>${biz?.name ?? "OtoParça"}</h1>
+    ${biz?.phone ? `<div class="sub">${biz.phone}${biz?.address ? " · " + biz.address : ""}</div>` : ""}
+    <hr class="divider">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+      <div><div><strong>Fiş No:</strong> #${String(s.sale_no).padStart(5, "0")}</div>
+      <div><strong>Tarih:</strong> ${new Date(s.created_at).toLocaleString("tr-TR")}</div>
+      <div><strong>Ödeme:</strong> ${s.payment_type === "nakit" ? "Nakit" : s.payment_type === "kart" ? "Kredi Kartı" : "Veresiye"}</div></div>
+      ${s.customers ? `<div style="text-align:right"><div><strong>${s.customers.full_name}</strong></div>
+      ${s.customers.phone ? `<div>${s.customers.phone}</div>` : ""}
+      ${s.vehicles ? `<div>${s.vehicles.plate} ${s.vehicles.make} ${s.vehicles.model}</div>` : ""}</div>` : ""}
+    </div>
+    <table><thead><tr><th>Ürün</th><th style="text-align:center">Adet</th><th style="text-align:center">Birim</th><th style="text-align:right">Tutar</th></tr></thead>
+    <tbody>${lines}</tbody></table>
+    <hr class="divider">
+    <div style="max-width:220px;margin-left:auto">
+      ${Number(s.discount) > 0 ? `<div class="total-row"><span>Ara Toplam</span><span>${fmt(Number(s.total) + Number(s.discount))}</span></div>
+      <div class="total-row" style="color:#c00"><span>İndirim</span><span>-${fmt(Number(s.discount))}</span></div>` : ""}
+      <div class="total-row grand"><span>TOPLAM</span><span>${fmt(Number(s.total))}</span></div>
+      ${s.payment_type === "veresiye" && Number(s.paid_amount) > 0 ? `
+      <div class="total-row"><span>Ödenen</span><span>${fmt(Number(s.paid_amount))}</span></div>
+      <div class="total-row" style="color:#c00"><span>Kalan Borç</span><span>${fmt(Number(s.total) - Number(s.paid_amount))}</span></div>` : ""}
+    </div>
+    ${s.notes ? `<div style="margin-top:12px;font-size:12px;color:#666">Not: ${s.notes}</div>` : ""}
+    <div class="footer">Teşekkür ederiz · OtoParça Sistemi</div>
+    <script>window.onload = () => { window.print(); }</script></body></html>`;
 
-  const w = window.open("", "_blank", "width=520,height=700");
-  w?.document.write(html);
-  w?.document.close();
+    const w = window.open("", "_blank", "width=520,height=700");
+    w?.document.write(html);
+    w?.document.close();
 }
 
 function SatislarPage() {
-  const qc = useQueryClient();
-  const businessId = useBusinessId();
-  const [open, setOpen] = useState(false);
-  const [customerId, setCustomerId] = useState<string>("");
-  const [vehicleId, setVehicleId] = useState<string>("");
-  const [notes, setNotes] = useState("");
-  const [lines, setLines] = useState<Line[]>([]);
-  const [partSearch, setPartSearch] = useState("");
-  const [discount, setDiscount] = useState<string>("0");
-  const [paymentType, setPaymentType] = useState<PaymentType>("nakit");
-  const [paidAmount, setPaidAmount] = useState<string>("");
+    const qc = useQueryClient();
+    const businessId = useBusinessId();
+    const [open, setOpen] = useState(false);
+    const [customerId, setCustomerId] = useState<string>("");
+    const [vehicleId, setVehicleId] = useState<string>("");
+    const [notes, setNotes] = useState("");
+    const [lines, setLines] = useState<Line[]>([]);
+    const [partSearch, setPartSearch] = useState("");
+    const [discount, setDiscount] = useState<string>("0");
+    const [paymentType, setPaymentType] = useState<PaymentType>("nakit");
+    const [paidAmount, setPaidAmount] = useState<string>("");
 
-  const { data: sales = [] } = useQuery({
-    queryKey: ["sales"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sales")
-        .select("id, sale_no, total, status, payment_type, created_at, customers(full_name), vehicles(plate)")
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: customers = [] } = useQuery({
-    queryKey: ["customers-list"],
-    queryFn: async () => (await supabase.from("customers").select("id, full_name").order("full_name")).data || [],
-  });
-
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ["vehicles-list", customerId],
-    queryFn: async () => {
-      if (!customerId) return [];
-      return (await supabase.from("vehicles").select("id, plate, make, model").eq("customer_id", customerId)).data || [];
-    },
-  });
-
-  const { data: parts = [] } = useQuery({
-    queryKey: ["parts-search", partSearch],
-    queryFn: async () => {
-      if (!partSearch) return [];
-      const { data } = await supabase
-        .from("parts").select("id, sku, name, price, stock")
-        .or(`name.ilike.%${partSearch}%,sku.ilike.%${partSearch}%`).limit(8);
-      return data || [];
-    },
-  });
-
-  const subtotal = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
-  const discountNum = Math.max(0, Number(discount) || 0);
-  const total = Math.max(0, subtotal - discountNum);
-  const paidNum = paymentType === "veresiye" ? Math.max(0, Number(paidAmount) || 0) : total;
-  const outstanding = Math.max(0, total - paidNum);
-
-  const addLine = (p: any) => {
-    setLines((prev) => {
-      const i = prev.findIndex((l) => l.part_id === p.id);
-      if (i >= 0) {
-        const next = [...prev]; next[i] = { ...next[i], qty: next[i].qty + 1 }; return next;
-      }
-      return [...prev, { part_id: p.id, name: p.name, sku: p.sku, qty: 1, unit_price: Number(p.price) }];
+    const { data: sales = [] } = useQuery({
+        queryKey: ["sales"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("sales")
+                .select("id, sale_no, total, status, payment_type, discount, paid_amount, customer_id, created_at, customers(full_name), vehicles(plate)")
+                .order("created_at", { ascending: false })
+                .limit(50);
+            if (error) throw error;
+            return data;
+        },
     });
-    setPartSearch("");
-  };
 
-  const create = useMutation({
-    mutationFn: async () => {
-      if (!businessId) throw new Error("İşletme bilgisi yüklenemedi");
-      if (lines.length === 0) throw new Error("En az bir parça ekleyin");
-      if (paymentType === "veresiye" && !customerId) throw new Error("Veresiye satış için müşteri seçin");
-      const { data: sale, error } = await supabase
-        .from("sales").insert({
-          business_id: businessId,
-          customer_id: customerId || null,
-          vehicle_id: vehicleId || null,
-          total, discount: discountNum,
-          payment_type: paymentType,
-          paid_amount: paidNum,
-          notes: notes || null,
-          status: "tamamlandi",
-        }).select().single();
-      if (error) throw error;
-      const items = lines.map((l) => ({
-        business_id: businessId,
-        sale_id: sale.id,
-        part_id: l.part_id,
-        qty: l.qty,
-        unit_price: l.unit_price,
-      }));
-      const { error: e2 } = await supabase.from("sale_items").insert(items);
-      if (e2) throw e2;
-      return sale;
-    },
-    onSuccess: (sale) => {
-      toast.success(outstanding > 0 ? `Satış kaydedildi. Veresiye: ${fmt(outstanding)}` : "Satış kaydedildi");
-      qc.invalidateQueries({ queryKey: ["sales"] });
-      qc.invalidateQueries({ queryKey: ["dashboard"] });
-      qc.invalidateQueries({ queryKey: ["parts"] });
-      qc.invalidateQueries({ queryKey: ["customers"] });
-      setOpen(false); setLines([]); setCustomerId(""); setVehicleId(""); setNotes("");
-      setDiscount("0"); setPaymentType("nakit"); setPaidAmount("");
-      // Fişi otomatik aç
-      setTimeout(() => printReceipt(sale.id), 500);
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
+    const { data: customers = [] } = useQuery({
+        queryKey: ["customers-list"],
+        queryFn: async () => (await supabase.from("customers").select("id, full_name").order("full_name")).data || [],
+    });
 
-  return (
-    <AppShell title="Satışlar" action={
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button><Plus className="size-4 mr-1" /> Yeni Satış</Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Yeni Satış Oluştur</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Müşteri</Label>
-                <select className="w-full border border-input rounded-md h-10 px-3 bg-background text-sm"
-                  value={customerId} onChange={(e) => { setCustomerId(e.target.value); setVehicleId(""); }}>
-                  <option value="">— Müşteri seçin —</option>
-                  {customers.map((c: any) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Araç</Label>
-                <select className="w-full border border-input rounded-md h-10 px-3 bg-background text-sm"
-                  value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} disabled={!customerId}>
-                  <option value="">— Araç seçin —</option>
-                  {vehicles.map((v: any) => <option key={v.id} value={v.id}>{v.plate} • {v.make} {v.model}</option>)}
-                </select>
-              </div>
-            </div>
+    const { data: vehicles = [] } = useQuery({
+        queryKey: ["vehicles-list", customerId],
+        queryFn: async () => {
+            if (!customerId) return [];
+            return (await supabase.from("vehicles").select("id, plate, make, model").eq("customer_id", customerId)).data || [];
+        },
+    });
 
-            <div className="space-y-2">
-              <Label>Parça Ekle</Label>
-              <Input placeholder="SKU veya isim ile ara..." value={partSearch} onChange={(e) => setPartSearch(e.target.value)} />
-              {parts.length > 0 && (
-                <Card className="p-2 max-h-48 overflow-auto">
-                  {parts.map((p: any) => (
-                    <button key={p.id} type="button" onClick={() => addLine(p)}
-                      className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm flex justify-between">
-                      <span><span className="font-mono text-xs text-muted-foreground">{p.sku}</span> {p.name}</span>
-                      <span className="text-muted-foreground">{fmt(Number(p.price))} • {p.stock} stok</span>
-                    </button>
-                  ))}
-                </Card>
-              )}
-            </div>
+    const { data: parts = [] } = useQuery({
+        queryKey: ["parts-search", partSearch],
+        queryFn: async () => {
+            if (!partSearch) return [];
+            const { data } = await supabase
+                .from("parts").select("id, sku, name, price, stock")
+                .or(`name.ilike.%${partSearch}%,sku.ilike.%${partSearch}%`).limit(8);
+            return data || [];
+        },
+    });
 
-            <div className="border rounded-md divide-y">
-              {lines.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Henüz parça eklenmedi.</div>}
-              {lines.map((l, i) => (
-                <div key={l.part_id} className="flex items-center gap-3 p-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{l.name}</p>
-                    <p className="text-xs font-mono text-muted-foreground">{l.sku}</p>
-                  </div>
-                  <Input type="number" min="1" value={l.qty}
-                    onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, qty: Math.max(1, Number(e.target.value)) } : x))}
-                    className="w-20" />
-                  <Input type="number" step="0.01" value={l.unit_price}
-                    onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, unit_price: Number(e.target.value) } : x))}
-                    className="w-28" />
-                  <span className="w-28 text-right font-semibold">{fmt(l.qty * l.unit_price)}</span>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setLines(lines.filter((_, j) => j !== i))}>
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+    const subtotal = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
+    const discountNum = Math.max(0, Number(discount) || 0);
+    const total = Math.max(0, subtotal - discountNum);
+    const paidNum = paymentType === "veresiye" ? Math.max(0, Number(paidAmount) || 0) : total;
+    const outstanding = Math.max(0, total - paidNum);
 
-            <Textarea placeholder="Notlar..." value={notes} onChange={(e) => setNotes(e.target.value)} />
+    const addLine = (p: any) => {
+        setLines((prev) => {
+            const i = prev.findIndex((l) => l.part_id === p.id);
+            if (i >= 0) {
+                const next = [...prev]; next[i] = { ...next[i], qty: next[i].qty + 1 }; return next;
+            }
+            return [...prev, { part_id: p.id, name: p.name, sku: p.sku, qty: 1, unit_price: Number(p.price) }];
+        });
+        setPartSearch("");
+    };
 
-            <div className="grid grid-cols-3 gap-4 pt-2 border-t">
-              <div className="space-y-2">
-                <Label>İndirim (₺)</Label>
-                <Input type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Ödeme Tipi</Label>
-                <select className="w-full border border-input rounded-md h-10 px-3 bg-background text-sm"
-                  value={paymentType} onChange={(e) => setPaymentType(e.target.value as PaymentType)}>
-                  <option value="nakit">Nakit</option>
-                  <option value="kart">Kredi Kartı</option>
-                  <option value="veresiye">Veresiye</option>
-                </select>
-              </div>
-              {paymentType === "veresiye" && (
-                <div className="space-y-2">
-                  <Label>Peşin Ödenen (₺)</Label>
-                  <Input type="number" step="0.01" min="0" placeholder="0" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} />
-                </div>
-              )}
-            </div>
+    const create = useMutation({
+        mutationFn: async () => {
+            if (!businessId) throw new Error("İşletme bilgisi yüklenemedi");
+            if (lines.length === 0) throw new Error("En az bir parça ekleyin");
+            if (paymentType === "veresiye" && !customerId) throw new Error("Veresiye satış için müşteri seçin");
+            const { data: sale, error } = await supabase
+                .from("sales").insert({
+                    business_id: businessId,
+                    customer_id: customerId || null,
+                    vehicle_id: vehicleId || null,
+                    total, discount: discountNum,
+                    payment_type: paymentType,
+                    paid_amount: paidNum,
+                    notes: notes || null,
+                    status: "tamamlandi",
+                }).select().single();
+            if (error) throw error;
+            const items = lines.map((l) => ({
+                business_id: businessId,
+                sale_id: sale.id,
+                part_id: l.part_id,
+                qty: l.qty,
+                unit_price: l.unit_price,
+            }));
+            const { error: e2 } = await supabase.from("sale_items").insert(items);
+            if (e2) throw e2;
+            return sale;
+        },
+        onSuccess: (sale) => {
+            toast.success(outstanding > 0 ? `Satış kaydedildi. Veresiye: ${fmt(outstanding)}` : "Satış kaydedildi");
+            qc.invalidateQueries({ queryKey: ["sales"] });
+            qc.invalidateQueries({ queryKey: ["dashboard"] });
+            qc.invalidateQueries({ queryKey: ["parts"] });
+            qc.invalidateQueries({ queryKey: ["customers"] });
+            setOpen(false); setLines([]); setCustomerId(""); setVehicleId(""); setNotes("");
+            setDiscount("0"); setPaymentType("nakit"); setPaidAmount("");
+            setTimeout(() => printReceipt(sale.id), 500);
+        },
+        onError: (e: any) => toast.error(e.message),
+    });
 
-            <div className="space-y-1.5 pt-2 border-t">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Ara Toplam</span><span>{fmt(subtotal)}</span>
-              </div>
-              {discountNum > 0 && (
-                <div className="flex justify-between text-sm text-destructive">
-                  <span>İndirim</span><span>−{fmt(discountNum)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-lg font-bold">
-                <span>Genel Toplam</span><span>{fmt(total)}</span>
-              </div>
-              {paymentType === "veresiye" && outstanding > 0 && (
-                <div className="flex justify-between text-sm font-semibold text-amber-700 bg-amber-50 px-3 py-2 rounded">
-                  <span>Veresiye Bakiye</span><span>{fmt(outstanding)}</span>
-                </div>
-              )}
-            </div>
+    const cancel = useMutation({
+        mutationFn: async (sale: any) => {
+            // Satış kalemlerini çek
+            const { data: items, error: ie } = await supabase
+                .from("sale_items")
+                .select("part_id, qty, parts(stock)")
+                .eq("sale_id", sale.id);
+            if (ie) throw ie;
 
-            <DialogFooter>
-              <Button onClick={() => create.mutate()} disabled={create.isPending || lines.length === 0}>
-                {create.isPending ? "Kaydediliyor..." : "Satışı Kaydet"}
-              </Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
-    }>
-      <Card className="overflow-hidden p-0">
-        <table className="w-full text-left">
-          <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-            <tr>
-              <th className="px-6 py-4">Fiş No</th>
-              <th className="px-6 py-4">Tarih</th>
-              <th className="px-6 py-4">Müşteri</th>
-              <th className="px-6 py-4">Araç</th>
-              <th className="px-6 py-4 text-right">Tutar</th>
-              <th className="px-6 py-4">Ödeme</th>
-              <th className="px-6 py-4">Durum</th>
-              <th className="px-6 py-4"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {sales.length === 0 && (
-              <tr><td colSpan={8} className="px-6 py-16 text-center">
-                <ShoppingCart className="size-10 mx-auto text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">Henüz satış kaydı yok.</p>
-              </td></tr>
-            )}
-            {sales.map((s: any) => (
-              <tr key={s.id} className="hover:bg-muted/50">
-                <td className="px-6 py-4 font-mono text-sm">#{String(s.sale_no).padStart(5, "0")}</td>
-                <td className="px-6 py-4 text-sm">{new Date(s.created_at).toLocaleString("tr-TR")}</td>
-                <td className="px-6 py-4 text-sm">{s.customers?.full_name || "—"}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{s.vehicles?.plate || "—"}</td>
-                <td className="px-6 py-4 text-right font-semibold">{fmt(Number(s.total))}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">
-                  {s.payment_type === "nakit" ? "Nakit" : s.payment_type === "kart" ? "Kart" : "Veresiye"}
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                    s.status === "tamamlandi" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                  }`}>{s.status}</span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => printReceipt(s.id)}>
-                    <Printer className="size-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-    </AppShell>
-  );
+            // Stokları geri ekle
+            for (const item of items || []) {
+                const currentStock = (item.parts as any)?.stock ?? 0;
+                const { error } = await supabase
+                    .from("parts")
+                    .update({ stock: currentStock + item.qty })
+                    .eq("id", item.part_id);
+                if (error) throw error;
+            }
+
+            // Veresiye ise müşteri bakiyesini düzelt
+            const outstanding = Number(sale.total) - Number(sale.paid_amount);
+            if (sale.payment_type === "veresiye" && outstanding > 0 && sale.customer_id) {
+                const { data: cust } = await supabase
+                    .from("customers").select("balance").eq("id", sale.customer_id).single();
+                if (cust) {
+                    await supabase.from("customers")
+                        .update({ balance: Math.max(0, Number(cust.balance) - outstanding) })
+                        .eq("id", sale.customer_id);
+                    // İptal işlemi kaydı
+                    await supabase.from("customer_transactions").insert({
+                        business_id: businessId,
+                        customer_id: sale.customer_id,
+                        sale_id: sale.id,
+                        type: "tahsilat",
+                        amount: outstanding,
+                        notes: `Satış iptali #${String(sale.sale_no).padStart(5, "0")}`,
+                    });
+                }
+            }
+
+            // Satışı iptal et
+            const { error } = await supabase
+                .from("sales").update({ status: "iptal" }).eq("id", sale.id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            toast.success("Satış iptal edildi, stoklar geri eklendi");
+            qc.invalidateQueries({ queryKey: ["sales"] });
+            qc.invalidateQueries({ queryKey: ["parts"] });
+            qc.invalidateQueries({ queryKey: ["customers"] });
+            qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+        onError: (e: any) => toast.error(e.message),
+    });
+
+    const statusBadge = (status: string) => {
+        if (status === "tamamlandi") return "bg-emerald-100 text-emerald-700";
+        if (status === "iptal") return "bg-red-100 text-red-700";
+        return "bg-amber-100 text-amber-700";
+    };
+
+    const statusLabel = (status: string) => {
+        if (status === "tamamlandi") return "Tamamlandı";
+        if (status === "iptal") return "İptal";
+        return status;
+    };
+
+    return (
+        <AppShell title="Satışlar" action={
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                    <Button><Plus className="size-4 mr-1" /> Yeni Satış</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader><DialogTitle>Yeni Satış Oluştur</DialogTitle></DialogHeader>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Müşteri</Label>
+                                <select className="w-full border border-input rounded-md h-10 px-3 bg-background text-sm"
+                                    value={customerId} onChange={(e) => { setCustomerId(e.target.value); setVehicleId(""); }}>
+                                    <option value="">— Müşteri seçin —</option>
+                                    {customers.map((c: any) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Araç</Label>
+                                <select className="w-full border border-input rounded-md h-10 px-3 bg-background text-sm"
+                                    value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} disabled={!customerId}>
+                                    <option value="">— Araç seçin —</option>
+                                    {vehicles.map((v: any) => <option key={v.id} value={v.id}>{v.plate} • {v.make} {v.model}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Parça Ekle</Label>
+                            <Input placeholder="SKU veya isim ile ara..." value={partSearch} onChange={(e) => setPartSearch(e.target.value)} />
+                            {parts.length > 0 && (
+                                <Card className="p-2 max-h-48 overflow-auto">
+                                    {parts.map((p: any) => (
+                                        <button key={p.id} type="button" onClick={() => addLine(p)}
+                                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm flex justify-between">
+                                            <span><span className="font-mono text-xs text-muted-foreground">{p.sku}</span> {p.name}</span>
+                                            <span className="text-muted-foreground">{fmt(Number(p.price))} • {p.stock} stok</span>
+                                        </button>
+                                    ))}
+                                </Card>
+                            )}
+                        </div>
+
+                        <div className="border rounded-md divide-y">
+                            {lines.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Henüz parça eklenmedi.</div>}
+                            {lines.map((l, i) => (
+                                <div key={l.part_id} className="flex items-center gap-3 p-3">
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">{l.name}</p>
+                                        <p className="text-xs font-mono text-muted-foreground">{l.sku}</p>
+                                    </div>
+                                    <Input type="number" min="1" value={l.qty}
+                                        onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, qty: Math.max(1, Number(e.target.value)) } : x))}
+                                        className="w-20" />
+                                    <Input type="number" step="0.01" value={l.unit_price}
+                                        onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, unit_price: Number(e.target.value) } : x))}
+                                        className="w-28" />
+                                    <span className="w-28 text-right font-semibold">{fmt(l.qty * l.unit_price)}</span>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => setLines(lines.filter((_, j) => j !== i))}>
+                                        <Trash2 className="size-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Textarea placeholder="Notlar..." value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+                        <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+                            <div className="space-y-2">
+                                <Label>İndirim (₺)</Label>
+                                <Input type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Ödeme Tipi</Label>
+                                <select className="w-full border border-input rounded-md h-10 px-3 bg-background text-sm"
+                                    value={paymentType} onChange={(e) => setPaymentType(e.target.value as PaymentType)}>
+                                    <option value="nakit">Nakit</option>
+                                    <option value="kart">Kredi Kartı</option>
+                                    <option value="veresiye">Veresiye</option>
+                                </select>
+                            </div>
+                            {paymentType === "veresiye" && (
+                                <div className="space-y-2">
+                                    <Label>Peşin Ödenen (₺)</Label>
+                                    <Input type="number" step="0.01" min="0" placeholder="0" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-1.5 pt-2 border-t">
+                            <div className="flex justify-between text-sm text-muted-foreground">
+                                <span>Ara Toplam</span><span>{fmt(subtotal)}</span>
+                            </div>
+                            {discountNum > 0 && (
+                                <div className="flex justify-between text-sm text-destructive">
+                                    <span>İndirim</span><span>−{fmt(discountNum)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-lg font-bold">
+                                <span>Genel Toplam</span><span>{fmt(total)}</span>
+                            </div>
+                            {paymentType === "veresiye" && outstanding > 0 && (
+                                <div className="flex justify-between text-sm font-semibold text-amber-700 bg-amber-50 px-3 py-2 rounded">
+                                    <span>Veresiye Bakiye</span><span>{fmt(outstanding)}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <DialogFooter>
+                            <Button onClick={() => create.mutate()} disabled={create.isPending || lines.length === 0}>
+                                {create.isPending ? "Kaydediliyor..." : "Satışı Kaydet"}
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        }>
+            <Card className="overflow-hidden p-0">
+                <table className="w-full text-left">
+                    <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+                        <tr>
+                            <th className="px-6 py-4">Fiş No</th>
+                            <th className="px-6 py-4">Tarih</th>
+                            <th className="px-6 py-4">Müşteri</th>
+                            <th className="px-6 py-4">Araç</th>
+                            <th className="px-6 py-4 text-right">Tutar</th>
+                            <th className="px-6 py-4">Ödeme</th>
+                            <th className="px-6 py-4">Durum</th>
+                            <th className="px-6 py-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                        {sales.length === 0 && (
+                            <tr><td colSpan={8} className="px-6 py-16 text-center">
+                                <ShoppingCart className="size-10 mx-auto text-muted-foreground/40 mb-2" />
+                                <p className="text-sm text-muted-foreground">Henüz satış kaydı yok.</p>
+                            </td></tr>
+                        )}
+                        {sales.map((s: any) => (
+                            <tr key={s.id} className={`hover:bg-muted/50 ${s.status === "iptal" ? "opacity-60" : ""}`}>
+                                <td className="px-6 py-4 font-mono text-sm">#{String(s.sale_no).padStart(5, "0")}</td>
+                                <td className="px-6 py-4 text-sm">{new Date(s.created_at).toLocaleString("tr-TR")}</td>
+                                <td className="px-6 py-4 text-sm">{s.customers?.full_name || "—"}</td>
+                                <td className="px-6 py-4 text-sm text-muted-foreground">{s.vehicles?.plate || "—"}</td>
+                                <td className="px-6 py-4 text-right font-semibold">{fmt(Number(s.total))}</td>
+                                <td className="px-6 py-4 text-sm text-muted-foreground">
+                                    {s.payment_type === "nakit" ? "Nakit" : s.payment_type === "kart" ? "Kart" : "Veresiye"}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${statusBadge(s.status)}`}>
+                                        {statusLabel(s.status)}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center justify-end gap-1">
+                                        <Button variant="ghost" size="sm" onClick={() => printReceipt(s.id)} title="Fiş Yazdır">
+                                            <Printer className="size-4" />
+                                        </Button>
+                                        {s.status === "tamamlandi" && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" title="İptal Et">
+                                                        <XCircle className="size-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Satışı iptal etmek istediğinize emin misiniz?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            #{String(s.sale_no).padStart(5, "0")} nolu satış iptal edilecek. Stoklar geri eklenecek
+                                                            {s.payment_type === "veresiye" ? ", müşteri bakiyesi düzeltilecek" : ""}. Bu işlem geri alınamaz.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            onClick={() => cancel.mutate(s)}
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                            Evet, İptal Et
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </Card>
+        </AppShell>
+    );
 }
