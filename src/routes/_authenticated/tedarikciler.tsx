@@ -2,23 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBusinessId } from "@/hooks/use-business-id";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/tedarikciler")({
-  component: TedarikcilerPage,
-});
+export const Route = createFileRoute("/_authenticated/tedarikciler")({ component: TedarikcilerPage });
 
 function TedarikcilerPage() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", tax_no: "", address: "" });
 
@@ -29,7 +27,9 @@ function TedarikcilerPage() {
 
   const save = useMutation({
     mutationFn: async () => {
+      if (!businessId) throw new Error("İşletme bilgisi yüklenemedi");
       const { error } = await supabase.from("suppliers").insert({
+        business_id: businessId,
         name: form.name, phone: form.phone || null, email: form.email || null,
         tax_no: form.tax_no || null, address: form.address || null,
       });

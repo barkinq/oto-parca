@@ -2,21 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBusinessId } from "@/hooks/use-business-id";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Trash2, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/satislar")({
-  component: SatislarPage,
-});
+export const Route = createFileRoute("/_authenticated/satislar")({ component: SatislarPage });
 
 const fmt = (n: number) => new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(n);
 
@@ -25,6 +22,7 @@ type PaymentType = "nakit" | "kart" | "veresiye";
 
 function SatislarPage() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
@@ -34,7 +32,6 @@ function SatislarPage() {
   const [discount, setDiscount] = useState<string>("0");
   const [paymentType, setPaymentType] = useState<PaymentType>("nakit");
   const [paidAmount, setPaidAmount] = useState<string>("");
-
 
   const { data: sales = [] } = useQuery({
     queryKey: ["sales"],
@@ -76,9 +73,7 @@ function SatislarPage() {
   const subtotal = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
   const discountNum = Math.max(0, Number(discount) || 0);
   const total = Math.max(0, subtotal - discountNum);
-  const paidNum = paymentType === "veresiye"
-    ? Math.max(0, Number(paidAmount) || 0)
-    : total;
+  const paidNum = paymentType === "veresiye" ? Math.max(0, Number(paidAmount) || 0) : total;
   const outstanding = Math.max(0, total - paidNum);
 
   const addLine = (p: any) => {
@@ -94,21 +89,28 @@ function SatislarPage() {
 
   const create = useMutation({
     mutationFn: async () => {
+      if (!businessId) throw new Error("İşletme bilgisi yüklenemedi");
       if (lines.length === 0) throw new Error("En az bir parça ekleyin");
       if (paymentType === "veresiye" && !customerId) throw new Error("Veresiye satış için müşteri seçin");
       const { data: sale, error } = await supabase
         .from("sales").insert({
+          business_id: businessId,
           customer_id: customerId || null,
           vehicle_id: vehicleId || null,
-          total,
-          discount: discountNum,
+          total, discount: discountNum,
           payment_type: paymentType,
           paid_amount: paidNum,
           notes: notes || null,
           status: "tamamlandi",
         }).select().single();
       if (error) throw error;
-      const items = lines.map((l) => ({ sale_id: sale.id, part_id: l.part_id, qty: l.qty, unit_price: l.unit_price }));
+      const items = lines.map((l) => ({
+        business_id: businessId,
+        sale_id: sale.id,
+        part_id: l.part_id,
+        qty: l.qty,
+        unit_price: l.unit_price,
+      }));
       const { error: e2 } = await supabase.from("sale_items").insert(items);
       if (e2) throw e2;
     },
@@ -123,7 +125,6 @@ function SatislarPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
-
 
   return (
     <AppShell title="Satışlar" action={
@@ -233,7 +234,6 @@ function SatislarPage() {
                 </div>
               )}
             </div>
-
 
             <DialogFooter>
               <Button onClick={() => create.mutate()} disabled={create.isPending || lines.length === 0}>

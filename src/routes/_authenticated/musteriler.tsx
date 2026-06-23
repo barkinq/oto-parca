@@ -2,23 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBusinessId } from "@/hooks/use-business-id";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Car, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/musteriler")({
-  component: MusterilerPage,
-});
+export const Route = createFileRoute("/_authenticated/musteriler")({ component: MusterilerPage });
 
 function MusterilerPage() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   const [open, setOpen] = useState(false);
   const [vehOpen, setVehOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -35,7 +33,9 @@ function MusterilerPage() {
 
   const saveCustomer = useMutation({
     mutationFn: async () => {
+      if (!businessId) throw new Error("İşletme bilgisi yüklenemedi");
       const { error } = await supabase.from("customers").insert({
+        business_id: businessId,
         full_name: form.full_name, phone: form.phone || null, email: form.email || null, address: form.address || null,
       });
       if (error) throw error;
@@ -50,7 +50,9 @@ function MusterilerPage() {
 
   const saveVehicle = useMutation({
     mutationFn: async () => {
+      if (!businessId) throw new Error("İşletme bilgisi yüklenemedi");
       const { error } = await supabase.from("vehicles").insert({
+        business_id: businessId,
         customer_id: vehForm.customer_id, plate: vehForm.plate.toUpperCase(),
         make: vehForm.make || null, model: vehForm.model || null,
         year: vehForm.year ? Number(vehForm.year) : null,
@@ -121,7 +123,6 @@ function MusterilerPage() {
                     </Button>
                   </td>
                 </tr>
-
                 {expanded === c.id && (
                   <tr key={c.id + "-v"} className="bg-muted/30">
                     <td colSpan={7} className="px-6 py-4">

@@ -2,20 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBusinessId } from "@/hooks/use-business-id";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/stok")({
-  component: StokPage,
-});
+export const Route = createFileRoute("/_authenticated/stok")({ component: StokPage });
 
 const fmt = (n: number) => new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(n);
 
@@ -30,13 +27,12 @@ type PartForm = {
 const empty: PartForm = {
   sku: "", name: "", brand: "", category: "", shelf_location: "",
   price: "0", cost: "0", stock: "0", min_stock: "0",
-  oem_code: "", barcode: "",
-  vehicle_make: "", vehicle_model: "", vehicle_year_from: "", vehicle_year_to: "",
+  oem_code: "", barcode: "", vehicle_make: "", vehicle_model: "", vehicle_year_from: "", vehicle_year_to: "",
 };
-
 
 function StokPage() {
   const qc = useQueryClient();
+  const businessId = useBusinessId();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PartForm>(empty);
@@ -54,15 +50,14 @@ function StokPage() {
 
   const save = useMutation({
     mutationFn: async () => {
+      if (!businessId) throw new Error("İşletme bilgisi yüklenemedi");
       const payload = {
         sku: form.sku, name: form.name, brand: form.brand || null, category: form.category || null,
         shelf_location: form.shelf_location || null,
         price: Number(form.price) || 0, cost: Number(form.cost) || 0,
         stock: Number(form.stock) || 0, min_stock: Number(form.min_stock) || 0,
-        oem_code: form.oem_code || null,
-        barcode: form.barcode || null,
-        vehicle_make: form.vehicle_make || null,
-        vehicle_model: form.vehicle_model || null,
+        oem_code: form.oem_code || null, barcode: form.barcode || null,
+        vehicle_make: form.vehicle_make || null, vehicle_model: form.vehicle_model || null,
         vehicle_year_from: form.vehicle_year_from ? Number(form.vehicle_year_from) : null,
         vehicle_year_to: form.vehicle_year_to ? Number(form.vehicle_year_to) : null,
       };
@@ -70,7 +65,7 @@ function StokPage() {
         const { error } = await supabase.from("parts").update(payload).eq("id", form.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("parts").insert(payload);
+        const { error } = await supabase.from("parts").insert({ ...payload, business_id: businessId });
         if (error) throw error;
       }
     },
@@ -102,9 +97,7 @@ function StokPage() {
           <Button><Plus className="size-4 mr-1" /> Yeni Parça</Button>
         </DialogTrigger>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{form.id ? "Parçayı Düzenle" : "Yeni Parça Ekle"}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{form.id ? "Parçayı Düzenle" : "Yeni Parça Ekle"}</DialogTitle></DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="grid grid-cols-2 gap-4">
             <Field label="SKU *"><Input required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></Field>
             <Field label="Ürün Adı *"><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
@@ -133,7 +126,6 @@ function StokPage() {
         </DialogContent>
       </Dialog>
     }>
-
       <div className="space-y-4">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
@@ -167,9 +159,7 @@ function StokPage() {
                   <td className="px-6 py-4 text-sm text-muted-foreground">{p.shelf_location || "—"}</td>
                   <td className="px-6 py-4 text-right font-semibold">{fmt(Number(p.price))}</td>
                   <td className="px-6 py-4 text-right">
-                    <span className={`font-mono text-sm ${p.stock <= p.min_stock ? "text-destructive font-bold" : ""}`}>
-                      {p.stock}
-                    </span>
+                    <span className={`font-mono text-sm ${p.stock <= p.min_stock ? "text-destructive font-bold" : ""}`}>{p.stock}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <Button variant="ghost" size="sm" onClick={() => edit(p)}><Pencil className="size-4" /></Button>
