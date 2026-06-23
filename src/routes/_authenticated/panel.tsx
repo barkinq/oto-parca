@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, PackagePlus, Printer, ArrowRight } from "lucide-react";
+import { Plus, PackagePlus, Printer, ArrowRight, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/panel")({
   component: PanelPage,
@@ -53,6 +53,21 @@ function PanelPage() {
   return (
     <AppShell title="Yönetim Paneli">
       <div className="space-y-8">
+        {(data?.criticalParts.length ?? 0) > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-amber-800 text-sm">Kritik Stok Uyarısı</p>
+              <p className="text-amber-700 text-sm mt-0.5">
+                {data?.criticalParts.length} ürün minimum stok seviyesinin altında:
+                {" "}{data?.criticalParts.map((p) => p.name).join(", ")}
+              </p>
+            </div>
+            <Link to="/stok" className="text-amber-700 text-xs font-medium hover:underline whitespace-nowrap">
+              Stoğa Git →
+            </Link>
+          </div>
+        )}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card className="p-6">
             <p className="text-sm font-medium text-muted-foreground mb-1">Günlük Toplam Satış</p>
