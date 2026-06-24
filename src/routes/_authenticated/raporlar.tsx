@@ -186,7 +186,7 @@ function RaporlarPage() {
                     <td className="px-3 md:px-6 py-3 text-sm font-medium">{p.name}</td>
                     <td className="px-3 md:px-6 py-3 text-right font-mono">{p.qty}</td>
                     <td className="px-3 md:px-6 py-3 text-right font-semibold hidden sm:table-cell">{fmt(p.revenue)}</td>
-                    <td className={`px-3 md:px-6 py-3 text-right font-semibold ${p.revenue - p.cost >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                    <td className={`px-3 md:px-6 py-3 text-right font-semibold whitespace-nowrap ${p.revenue - p.cost >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       {fmt(p.revenue - p.cost)}
                     </td>
                   </tr>
