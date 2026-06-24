@@ -86,11 +86,9 @@ function StokPage() {
         vehicle_year_to: form.vehicle_year_to ? Number(form.vehicle_year_to) : null,
       };
       if (form.id) {
-        // Stok değişti mi kontrol et
         const { data: old } = await supabase.from("parts").select("stock").eq("id", form.id).single();
         const { error } = await supabase.from("parts").update(payload).eq("id", form.id);
         if (error) throw error;
-        // Stok değiştiyse hareket kaydı ekle
         if (old && old.stock !== Number(form.stock)) {
           const diff = Number(form.stock) - old.stock;
           await supabase.from("stock_movements").insert({
@@ -104,7 +102,6 @@ function StokPage() {
       } else {
         const { data: newPart, error } = await supabase.from("parts").insert({ ...payload, business_id: businessId }).select().single();
         if (error) throw error;
-        // İlk stok girişi kaydı
         if (Number(form.stock) > 0 && newPart) {
           await supabase.from("stock_movements").insert({
             business_id: businessId,
@@ -184,94 +181,97 @@ function StokPage() {
           <Input className="pl-10" placeholder="SKU, isim veya marka ara..." value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <Card className="overflow-hidden p-0">
-          <table className="w-full text-left">
-            <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-              <tr>
-                <th className="px-6 py-4">SKU</th>
-                <th className="px-6 py-4">Ürün</th>
-                <th className="px-6 py-4">Marka</th>
-                <th className="px-6 py-4">Raf</th>
-                <th className="px-6 py-4 text-right">Fiyat</th>
-                <th className="px-6 py-4 text-right">Stok</th>
-                <th className="px-6 py-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {parts.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground text-sm">Parça bulunamadı. "Yeni Parça" ile başlayın.</td></tr>
-              )}
-              {parts.map((p: any) => (
-                <tr key={p.id} className="hover:bg-muted/50">
-                  <td className="px-6 py-4 font-mono text-xs">{p.sku}</td>
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-sm">{p.name}</p>
-                    {p.category && <p className="text-xs text-muted-foreground">{p.category}</p>}
-                  </td>
-                  <td className="px-6 py-4 text-sm">{p.brand || "—"}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{p.shelf_location || "—"}</td>
-                  <td className="px-6 py-4 text-right font-semibold">{fmt(Number(p.price))}</td>
-                  <td className="px-6 py-4 text-right">
-                    <span className={`font-mono text-sm ${p.stock <= p.min_stock ? "text-destructive font-bold" : ""}`}>{p.stock}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openHistory(p)} title="Stok Geçmişi">
-                        <History className="size-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => edit(p)}>
-                        <Pencil className="size-4" />
-                      </Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+                <tr>
+                  <th className="px-3 md:px-6 py-4">SKU</th>
+                  <th className="px-3 md:px-6 py-4">Ürün</th>
+                  <th className="px-3 md:px-6 py-4 hidden sm:table-cell">Marka</th>
+                  <th className="px-3 md:px-6 py-4 hidden md:table-cell">Raf</th>
+                  <th className="px-3 md:px-6 py-4 text-right hidden sm:table-cell">Fiyat</th>
+                  <th className="px-3 md:px-6 py-4 text-right">Stok</th>
+                  <th className="px-3 md:px-6 py-4"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {parts.length === 0 && (
+                  <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground text-sm">Parça bulunamadı. "Yeni Parça" ile başlayın.</td></tr>
+                )}
+                {parts.map((p: any) => (
+                  <tr key={p.id} className="hover:bg-muted/50">
+                    <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-xs">{p.sku}</td>
+                    <td className="px-3 md:px-6 py-3 md:py-4">
+                      <p className="font-medium text-sm">{p.name}</p>
+                      {p.category && <p className="text-xs text-muted-foreground">{p.category}</p>}
+                    </td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-sm hidden sm:table-cell">{p.brand || "—"}</td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-sm text-muted-foreground hidden md:table-cell">{p.shelf_location || "—"}</td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-right font-semibold hidden sm:table-cell">{fmt(Number(p.price))}</td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-right">
+                      <span className={`font-mono text-sm ${p.stock <= p.min_stock ? "text-destructive font-bold" : ""}`}>{p.stock}</span>
+                    </td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openHistory(p)} title="Stok Geçmişi">
+                          <History className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => edit(p)}>
+                          <Pencil className="size-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
 
-      {/* Stok Hareketi Geçmişi Dialog */}
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Stok Geçmişi — {selectedPart?.name}</DialogTitle>
+            <DialogTitle>Stok Geçmişi – {selectedPart?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             {movements.length === 0 ? (
               <p className="text-center text-muted-foreground py-8 text-sm">Henüz stok hareketi yok.</p>
             ) : (
-              <table className="w-full text-left text-sm">
-                <thead className="text-xs text-muted-foreground uppercase border-b">
-                  <tr>
-                    <th className="pb-2">Tarih</th>
-                    <th className="pb-2">İşlem</th>
-                    <th className="pb-2 text-right">Miktar</th>
-                    <th className="pb-2">Not</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {movements.map((m: any) => (
-                    <tr key={m.id} className="hover:bg-muted/30">
-                      <td className="py-2 text-muted-foreground text-xs">
-                        {new Date(m.created_at).toLocaleString("tr-TR")}
-                      </td>
-                      <td className="py-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          m.type === "satis" || m.type === "iptal" ? "bg-red-100 text-red-700" :
-                          m.type === "satin_alma" || m.type === "manuel_giris" ? "bg-emerald-100 text-emerald-700" :
-                          "bg-muted text-muted-foreground"
-                        }`}>
-                          {typeLabel[m.type] || m.type}
-                        </span>
-                      </td>
-                      <td className={`py-2 text-right font-mono font-bold ${m.qty > 0 ? "text-emerald-600" : "text-destructive"}`}>
-                        {m.qty > 0 ? `+${m.qty}` : m.qty}
-                      </td>
-                      <td className="py-2 text-xs text-muted-foreground">{m.note || "—"}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-xs text-muted-foreground uppercase border-b">
+                    <tr>
+                      <th className="pb-2">Tarih</th>
+                      <th className="pb-2">İşlem</th>
+                      <th className="pb-2 text-right">Miktar</th>
+                      <th className="pb-2 hidden sm:table-cell">Not</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {movements.map((m: any) => (
+                      <tr key={m.id} className="hover:bg-muted/30">
+                        <td className="py-2 text-muted-foreground text-xs">
+                          {new Date(m.created_at).toLocaleString("tr-TR")}
+                        </td>
+                        <td className="py-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            m.type === "satis" || m.type === "iptal" ? "bg-red-100 text-red-700" :
+                            m.type === "satin_alma" || m.type === "manuel_giris" ? "bg-emerald-100 text-emerald-700" :
+                            "bg-muted text-muted-foreground"
+                          }`}>
+                            {typeLabel[m.type] || m.type}
+                          </span>
+                        </td>
+                        <td className={`py-2 text-right font-mono font-bold ${m.qty > 0 ? "text-emerald-600" : "text-destructive"}`}>
+                          {m.qty > 0 ? `+${m.qty}` : m.qty}
+                        </td>
+                        <td className="py-2 text-xs text-muted-foreground hidden sm:table-cell">{m.note || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </DialogContent>

@@ -104,7 +104,6 @@ function SiparislerPage() {
 
   const receive = useMutation({
     mutationFn: async (po: any) => {
-      // Stokları artır
       for (const item of po.purchase_order_items) {
         const { error } = await supabase
           .from("parts")
@@ -112,7 +111,6 @@ function SiparislerPage() {
           .eq("id", item.part_id);
         if (error) throw error;
       }
-      // Stok hareketi kayıtları
       const movements = po.purchase_order_items.map((item: any) => ({
         business_id: item.business_id || po.business_id,
         part_id: item.part_id,
@@ -124,7 +122,6 @@ function SiparislerPage() {
       if (movements.length > 0) {
         await supabase.from("stock_movements").insert(movements);
       }
-      // Siparişi teslim alındı yap
       const { error } = await supabase
         .from("purchase_orders")
         .update({ status: "teslim_alindi" })
@@ -189,24 +186,24 @@ function SiparislerPage() {
             <div className="border rounded-md divide-y">
               {lines.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Henüz parça eklenmedi.</div>}
               {lines.map((l, i) => (
-                <div key={l.part_id} className="flex items-center gap-3 p-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{l.name}</p>
+                <div key={l.part_id} className="flex flex-wrap items-center gap-2 p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{l.name}</p>
                     <p className="text-xs font-mono text-muted-foreground">{l.sku}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs">Adet</Label>
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs whitespace-nowrap">Adet</Label>
                     <Input type="number" min="1" value={l.qty}
                       onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, qty: Math.max(1, Number(e.target.value)) } : x))}
-                      className="w-20" />
+                      className="w-16" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs">Birim Maliyet (₺)</Label>
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs whitespace-nowrap">Maliyet (₺)</Label>
                     <Input type="number" step="0.01" value={l.unit_cost}
                       onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, unit_cost: Number(e.target.value) } : x))}
-                      className="w-28" />
+                      className="w-24" />
                   </div>
-                  <span className="w-24 text-right font-semibold text-sm">{fmt(l.qty * l.unit_cost)}</span>
+                  <span className="text-right font-semibold text-sm w-20">{fmt(l.qty * l.unit_cost)}</span>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setLines(lines.filter((_, j) => j !== i))}>
                     <Trash2 className="size-4" />
                   </Button>
@@ -236,85 +233,89 @@ function SiparislerPage() {
       </Dialog>
     }>
       <Card className="overflow-hidden p-0">
-        <table className="w-full text-left">
-          <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-            <tr>
-              <th className="px-4 py-4 w-8"></th>
-              <th className="px-4 py-4">Sipariş No</th>
-              <th className="px-4 py-4">Tedarikçi</th>
-              <th className="px-4 py-4">Tarih</th>
-              <th className="px-4 py-4 text-right">Tutar</th>
-              <th className="px-4 py-4">Durum</th>
-              <th className="px-4 py-4"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {orders.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-16 text-center">
-                <Truck className="size-10 mx-auto text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">Henüz sipariş yok.</p>
-              </td></tr>
-            )}
-            {orders.map((o: any) => (
-              <>
-                <tr key={o.id} className="hover:bg-muted/50">
-                  <td className="px-4 py-4">
-                    <button onClick={() => setExpanded(expanded === o.id ? null : o.id)}>
-                      {expanded === o.id ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                    </button>
-                  </td>
-                  <td className="px-4 py-4 font-mono text-sm">#{String(o.po_no).padStart(5, "0")}</td>
-                  <td className="px-4 py-4 font-medium">{o.suppliers?.name || "—"}</td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">{new Date(o.created_at).toLocaleDateString("tr-TR")}</td>
-                  <td className="px-4 py-4 text-right font-semibold">{fmt(Number(o.total))}</td>
-                  <td className="px-4 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${statusBadge(o.status)}`}>
-                      {statusLabel(o.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    {o.status === "bekliyor" && (
-                      <Button size="sm" variant="outline"
-                        onClick={() => receive.mutate(o)}
-                        disabled={receive.isPending}>
-                        <PackageCheck className="size-4 mr-1" /> Teslim Al
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-                {expanded === o.id && (
-                  <tr key={o.id + "-items"} className="bg-muted/30">
-                    <td colSpan={7} className="px-8 py-4">
-                      <table className="w-full text-sm">
-                        <thead className="text-xs text-muted-foreground uppercase">
-                          <tr>
-                            <th className="pb-2 text-left">SKU</th>
-                            <th className="pb-2 text-left">Ürün</th>
-                            <th className="pb-2 text-right">Adet</th>
-                            <th className="pb-2 text-right">Birim Maliyet</th>
-                            <th className="pb-2 text-right">Toplam</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border/50">
-                          {o.purchase_order_items?.map((item: any) => (
-                            <tr key={item.id}>
-                              <td className="py-2 font-mono text-xs">{item.parts?.sku}</td>
-                              <td className="py-2">{item.parts?.name}</td>
-                              <td className="py-2 text-right">{item.qty}</td>
-                              <td className="py-2 text-right">{fmt(Number(item.unit_cost))}</td>
-                              <td className="py-2 text-right font-semibold">{fmt(item.qty * Number(item.unit_cost))}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {o.notes && <p className="mt-3 text-xs text-muted-foreground">Not: {o.notes}</p>}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+              <tr>
+                <th className="px-3 md:px-4 py-4 w-8"></th>
+                <th className="px-3 md:px-4 py-4">Sipariş No</th>
+                <th className="px-3 md:px-4 py-4">Tedarikçi</th>
+                <th className="px-3 md:px-4 py-4 hidden sm:table-cell">Tarih</th>
+                <th className="px-3 md:px-4 py-4 text-right">Tutar</th>
+                <th className="px-3 md:px-4 py-4">Durum</th>
+                <th className="px-3 md:px-4 py-4"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {orders.length === 0 && (
+                <tr><td colSpan={7} className="px-6 py-16 text-center">
+                  <Truck className="size-10 mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">Henüz sipariş yok.</p>
+                </td></tr>
+              )}
+              {orders.map((o: any) => (
+                <>
+                  <tr key={o.id} className="hover:bg-muted/50">
+                    <td className="px-3 md:px-4 py-3 md:py-4">
+                      <button onClick={() => setExpanded(expanded === o.id ? null : o.id)}>
+                        {expanded === o.id ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                      </button>
+                    </td>
+                    <td className="px-3 md:px-4 py-3 md:py-4 font-mono text-sm">#{String(o.po_no).padStart(5, "0")}</td>
+                    <td className="px-3 md:px-4 py-3 md:py-4 font-medium">{o.suppliers?.name || "—"}</td>
+                    <td className="px-3 md:px-4 py-3 md:py-4 text-sm text-muted-foreground hidden sm:table-cell">{new Date(o.created_at).toLocaleDateString("tr-TR")}</td>
+                    <td className="px-3 md:px-4 py-3 md:py-4 text-right font-semibold">{fmt(Number(o.total))}</td>
+                    <td className="px-3 md:px-4 py-3 md:py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${statusBadge(o.status)}`}>
+                        {statusLabel(o.status)}
+                      </span>
+                    </td>
+                    <td className="px-3 md:px-4 py-3 md:py-4 text-right">
+                      {o.status === "bekliyor" && (
+                        <Button size="sm" variant="outline"
+                          onClick={() => receive.mutate(o)}
+                          disabled={receive.isPending}>
+                          <PackageCheck className="size-4 mr-1" /> <span className="hidden sm:inline">Teslim Al</span>
+                        </Button>
+                      )}
                     </td>
                   </tr>
-                )}
-              </>
-            ))}
-          </tbody>
-        </table>
+                  {expanded === o.id && (
+                    <tr key={o.id + "-items"} className="bg-muted/30">
+                      <td colSpan={7} className="px-4 md:px-8 py-4">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="text-xs text-muted-foreground uppercase">
+                              <tr>
+                                <th className="pb-2 text-left hidden sm:table-cell">SKU</th>
+                                <th className="pb-2 text-left">Ürün</th>
+                                <th className="pb-2 text-right">Adet</th>
+                                <th className="pb-2 text-right hidden sm:table-cell">Birim Maliyet</th>
+                                <th className="pb-2 text-right">Toplam</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/50">
+                              {o.purchase_order_items?.map((item: any) => (
+                                <tr key={item.id}>
+                                  <td className="py-2 font-mono text-xs hidden sm:table-cell">{item.parts?.sku}</td>
+                                  <td className="py-2">{item.parts?.name}</td>
+                                  <td className="py-2 text-right">{item.qty}</td>
+                                  <td className="py-2 text-right hidden sm:table-cell">{fmt(Number(item.unit_cost))}</td>
+                                  <td className="py-2 text-right font-semibold">{fmt(item.qty * Number(item.unit_cost))}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {o.notes && <p className="mt-3 text-xs text-muted-foreground">Not: {o.notes}</p>}
+                      </td>
+                    </tr>
+                  )}
+                </>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </AppShell>
   );

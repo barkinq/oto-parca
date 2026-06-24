@@ -32,10 +32,7 @@ function MusterilerPage() {
   const { data: customers = [] } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("customers")
-        .select("*, vehicles(*)")
-        .order("full_name");
+      const { data } = await supabase.from("customers").select("*, vehicles(*)").order("full_name");
       return data || [];
     },
   });
@@ -110,18 +107,12 @@ function MusterilerPage() {
       if (!businessId) throw new Error("İşletme bilgisi yüklenemedi");
       const amount = Number(tahsilatForm.amount);
       if (!amount || amount <= 0) throw new Error("Geçerli bir tutar girin");
-
-      // Müşteri bakiyesini düşür
-      const { data: cust } = await supabase
-        .from("customers").select("balance").eq("id", tahsilatForm.customer_id).single();
+      const { data: cust } = await supabase.from("customers").select("balance").eq("id", tahsilatForm.customer_id).single();
       if (!cust) throw new Error("Müşteri bulunamadı");
-
       const { error: e1 } = await supabase.from("customers")
         .update({ balance: Math.max(0, Number(cust.balance) - amount) })
         .eq("id", tahsilatForm.customer_id);
       if (e1) throw e1;
-
-      // İşlem kaydı
       const { error: e2 } = await supabase.from("customer_transactions").insert({
         business_id: businessId,
         customer_id: tahsilatForm.customer_id,
@@ -145,10 +136,7 @@ function MusterilerPage() {
       const { error } = await supabase.from("vehicles").delete().eq("id", vehicleId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Araç silindi");
-      qc.invalidateQueries({ queryKey: ["customers"] });
-    },
+    onSuccess: () => { toast.success("Araç silindi"); qc.invalidateQueries({ queryKey: ["customers"] }); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -157,10 +145,7 @@ function MusterilerPage() {
       const { error } = await supabase.from("customers").delete().eq("id", customerId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Müşteri silindi");
-      qc.invalidateQueries({ queryKey: ["customers"] });
-    },
+    onSuccess: () => { toast.success("Müşteri silindi"); qc.invalidateQueries({ queryKey: ["customers"] }); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -183,137 +168,147 @@ function MusterilerPage() {
       </Dialog>
     }>
       <Card className="overflow-hidden p-0">
-        <table className="w-full text-left">
-          <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-            <tr>
-              <th className="px-6 py-4 w-8"></th>
-              <th className="px-6 py-4">Müşteri</th>
-              <th className="px-6 py-4">Telefon</th>
-              <th className="px-6 py-4">Araç</th>
-              <th className="px-6 py-4 text-right">Veresiye Bakiye</th>
-              <th className="px-6 py-4"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {customers.length === 0 && (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-muted-foreground">Henüz müşteri yok.</td></tr>
-            )}
-            {customers.map((c: any) => (
-              <>
-                <tr key={c.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => setExpanded(expanded === c.id ? null : c.id)}>
-                  <td className="px-6 py-4">
-                    {expanded === c.id ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-                  </td>
-                  <td className="px-6 py-4 font-medium">{c.full_name}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{c.phone || "—"}</td>
-                  <td className="px-6 py-4 text-sm">{c.vehicles?.length || 0} araç</td>
-                  <td className="px-6 py-4 text-right">
-                    <span className={`font-mono font-semibold ${Number(c.balance) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                      {fmt(Number(c.balance) || 0)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-2">
-                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
-                        onClick={() => { if (confirm(`${c.full_name} müşterisini silmek istediğinize emin misiniz?`)) deleteCustomer.mutate(c.id); }}>
-                        <Trash2 className="size-3" />
-                      </Button>
-                      {Number(c.balance) > 0 && (
-                        <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                          onClick={() => { setTahsilatForm({ customer_id: c.id, customer_name: c.full_name, amount: "", notes: "" }); setTahsilatOpen(true); }}>
-                          <Wallet className="size-3 mr-1" /> Tahsilat Al
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+              <tr>
+                <th className="px-3 md:px-6 py-4 w-8"></th>
+                <th className="px-3 md:px-6 py-4">Müşteri</th>
+                <th className="px-3 md:px-6 py-4 hidden sm:table-cell">Telefon</th>
+                <th className="px-3 md:px-6 py-4 hidden sm:table-cell">Araç</th>
+                <th className="px-3 md:px-6 py-4 text-right">Bakiye</th>
+                <th className="px-3 md:px-6 py-4"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {customers.length === 0 && (
+                <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-muted-foreground">Henüz müşteri yok.</td></tr>
+              )}
+              {customers.map((c: any) => (
+                <>
+                  <tr key={c.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => setExpanded(expanded === c.id ? null : c.id)}>
+                    <td className="px-3 md:px-6 py-3 md:py-4">
+                      {expanded === c.id ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                    </td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 font-medium">{c.full_name}</td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-sm text-muted-foreground hidden sm:table-cell">{c.phone || "—"}</td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-sm hidden sm:table-cell">{c.vehicles?.length || 0} araç</td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-right">
+                      <span className={`font-mono font-semibold text-sm ${Number(c.balance) > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                        {fmt(Number(c.balance) || 0)}
+                      </span>
+                    </td>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
+                          onClick={() => { if (confirm(`${c.full_name} müşterisini silmek istediğinize emin misiniz?`)) deleteCustomer.mutate(c.id); }}>
+                          <Trash2 className="size-3" />
                         </Button>
-                      )}
-                      <Button size="sm" variant="outline"
-                        onClick={() => { setVehForm({ ...vehForm, customer_id: c.id }); setVehOpen(true); }}>
-                        <Car className="size-3 mr-1" /> Araç Ekle
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-
-                {expanded === c.id && (
-                  <tr key={c.id + "-detail"} className="bg-muted/20">
-                    <td colSpan={6} className="px-6 py-4">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                        {/* Araçlar */}
-                        <div>
-                          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Araçlar</h4>
-                          {c.vehicles?.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Kayıtlı araç yok.</p>
-                          ) : (
-                            <div className="grid grid-cols-2 gap-2">
-                              {c.vehicles.map((v: any) => (
-                                <div key={v.id} className="bg-background border rounded-md p-3 cursor-pointer hover:border-orange-400 hover:bg-muted/30 transition-colors"
-                                  onClick={() => { setSelectedVehicle({ id: v.id, plate: v.plate }); setVehicleHistoryOpen(true); }}>
-                                  <p className="font-mono font-bold text-sm">{v.plate}</p>
-                                  <p className="text-xs text-muted-foreground">{v.make} {v.model} {v.year ? `• ${v.year}` : ""}</p>
-                                  <div className="flex items-center justify-between mt-2">
-                                    <p className="text-xs text-orange-500">Servis geçmişi →</p>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); if (window.confirm("Bu aracı silmek istediğinize emin misiniz?")) deleteVehicle.mutate(v.id); }}
-                                      className="text-destructive text-xs flex items-center gap-1 hover:underline">
-                                      <Trash2 className="size-3" /> Sil
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Satış geçmişi */}
-                        <div>
-                          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Son Satışlar</h4>
-                          {customerSales.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Satış kaydı yok.</p>
-                          ) : (
-                            <div className="space-y-2">
-                              {customerSales.map((sale: any) => (
-                                <div key={sale.id} className="bg-background border rounded-md p-3">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="font-mono text-xs text-muted-foreground">#{String(sale.sale_no).padStart(5, "0")}</span>
-                                    <span className="text-xs text-muted-foreground">{new Date(sale.created_at).toLocaleDateString("tr-TR")}</span>
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                      {sale.sale_items?.map((i: any) => i.parts?.name).join(", ").slice(0, 40)}
-                                      {sale.sale_items?.map((i: any) => i.parts?.name).join(", ").length > 40 ? "..." : ""}
-                                    </span>
-                                    <div className="text-right">
-                                      <p className="font-semibold text-sm">{fmt(Number(sale.total))}</p>
-                                      {sale.payment_type === "veresiye" && Number(sale.total) > Number(sale.paid_amount) && (
-                                        <p className="text-xs text-destructive">Kalan: {fmt(Number(sale.total) - Number(sale.paid_amount))}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="mt-1">
-                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                                      sale.status === "tamamlandi" ? "bg-emerald-100 text-emerald-700" :
-                                      sale.status === "iptal" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                                    }`}>
-                                      {sale.payment_type === "nakit" ? "Nakit" : sale.payment_type === "kart" ? "Kart" : "Veresiye"}
-                                      {sale.status === "iptal" ? " · İptal" : ""}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
+                        {Number(c.balance) > 0 && (
+                          <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300 hover:bg-emerald-50 hidden sm:flex"
+                            onClick={() => { setTahsilatForm({ customer_id: c.id, customer_name: c.full_name, amount: "", notes: "" }); setTahsilatOpen(true); }}>
+                            <Wallet className="size-3 mr-1" /> Tahsilat
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="hidden sm:flex"
+                          onClick={() => { setVehForm({ ...vehForm, customer_id: c.id }); setVehOpen(true); }}>
+                          <Car className="size-3 mr-1" /> Araç Ekle
+                        </Button>
                       </div>
                     </td>
                   </tr>
-                )}
-              </>
-            ))}
-          </tbody>
-        </table>
+
+                  {expanded === c.id && (
+                    <tr key={c.id + "-detail"} className="bg-muted/20">
+                      <td colSpan={6} className="px-3 md:px-6 py-4">
+                        {/* Mobilde araç/tahsilat butonları */}
+                        <div className="flex gap-2 mb-4 sm:hidden">
+                          {Number(c.balance) > 0 && (
+                            <Button size="sm" variant="outline" className="text-emerald-700 border-emerald-300"
+                              onClick={() => { setTahsilatForm({ customer_id: c.id, customer_name: c.full_name, amount: "", notes: "" }); setTahsilatOpen(true); }}>
+                              <Wallet className="size-3 mr-1" /> Tahsilat Al
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline"
+                            onClick={() => { setVehForm({ ...vehForm, customer_id: c.id }); setVehOpen(true); }}>
+                            <Car className="size-3 mr-1" /> Araç Ekle
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Araçlar</h4>
+                            {c.vehicles?.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">Kayıtlı araç yok.</p>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-2">
+                                {c.vehicles.map((v: any) => (
+                                  <div key={v.id} className="bg-background border rounded-md p-3 cursor-pointer hover:border-orange-400 hover:bg-muted/30 transition-colors"
+                                    onClick={() => { setSelectedVehicle({ id: v.id, plate: v.plate }); setVehicleHistoryOpen(true); }}>
+                                    <p className="font-mono font-bold text-sm">{v.plate}</p>
+                                    <p className="text-xs text-muted-foreground">{v.make} {v.model} {v.year ? `• ${v.year}` : ""}</p>
+                                    <div className="flex items-center justify-between mt-2">
+                                      <p className="text-xs text-orange-500">Servis geçmişi →</p>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); if (window.confirm("Bu aracı silmek istediğinize emin misiniz?")) deleteVehicle.mutate(v.id); }}
+                                        className="text-destructive text-xs flex items-center gap-1 hover:underline">
+                                        <Trash2 className="size-3" /> Sil
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Son Satışlar</h4>
+                            {customerSales.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">Satış kaydı yok.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {customerSales.map((sale: any) => (
+                                  <div key={sale.id} className="bg-background border rounded-md p-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="font-mono text-xs text-muted-foreground">#{String(sale.sale_no).padStart(5, "0")}</span>
+                                      <span className="text-xs text-muted-foreground">{new Date(sale.created_at).toLocaleDateString("tr-TR")}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm text-muted-foreground truncate max-w-[120px]">
+                                        {sale.sale_items?.map((i: any) => i.parts?.name).join(", ")}
+                                      </span>
+                                      <div className="text-right ml-2">
+                                        <p className="font-semibold text-sm">{fmt(Number(sale.total))}</p>
+                                        {sale.payment_type === "veresiye" && Number(sale.total) > Number(sale.paid_amount) && (
+                                          <p className="text-xs text-destructive">Kalan: {fmt(Number(sale.total) - Number(sale.paid_amount))}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="mt-1">
+                                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                                        sale.status === "tamamlandi" ? "bg-emerald-100 text-emerald-700" :
+                                        sale.status === "iptal" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                                      }`}>
+                                        {sale.payment_type === "nakit" ? "Nakit" : sale.payment_type === "kart" ? "Kart" : "Veresiye"}
+                                        {sale.status === "iptal" ? " · İptal" : ""}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
-      {/* Araç ekleme dialog */}
       <Dialog open={vehOpen} onOpenChange={setVehOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Araç Ekle</DialogTitle></DialogHeader>
@@ -329,11 +324,10 @@ function MusterilerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Araç Servis Geçmişi Dialog */}
       <Dialog open={vehicleHistoryOpen} onOpenChange={setVehicleHistoryOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Servis Geçmişi — {selectedVehicle?.plate}</DialogTitle>
+            <DialogTitle>Servis Geçmişi – {selectedVehicle?.plate}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             {vehicleSales.length === 0 ? (
@@ -370,10 +364,9 @@ function MusterilerPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Tahsilat dialog */}
       <Dialog open={tahsilatOpen} onOpenChange={setTahsilatOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Tahsilat Al — {tahsilatForm.customer_name}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Tahsilat Al – {tahsilatForm.customer_name}</DialogTitle></DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); saveTahsilat.mutate(); }} className="space-y-4">
             <div className="space-y-2">
               <Label>Tahsilat Tutarı (₺) *</Label>

@@ -63,29 +63,31 @@ function TedarikcilerPage() {
       </Dialog>
     }>
       <Card className="overflow-hidden p-0">
-        <table className="w-full text-left">
-          <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-            <tr>
-              <th className="px-6 py-4">Firma</th>
-              <th className="px-6 py-4">Telefon</th>
-              <th className="px-6 py-4">E-posta</th>
-              <th className="px-6 py-4">Vergi No</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {suppliers.length === 0 && (
-              <tr><td colSpan={4} className="px-6 py-12 text-center text-sm text-muted-foreground">Henüz tedarikçi yok.</td></tr>
-            )}
-            {suppliers.map((s: any) => (
-              <tr key={s.id} className="hover:bg-muted/50">
-                <td className="px-6 py-4 font-medium">{s.name}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{s.phone || "—"}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{s.email || "—"}</td>
-                <td className="px-6 py-4 text-sm font-mono">{s.tax_no || "—"}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+              <tr>
+                <th className="px-3 md:px-6 py-4">Firma</th>
+                <th className="px-3 md:px-6 py-4">Telefon</th>
+                <th className="px-3 md:px-6 py-4 hidden sm:table-cell">E-posta</th>
+                <th className="px-3 md:px-6 py-4 hidden md:table-cell">Vergi No</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {suppliers.length === 0 && (
+                <tr><td colSpan={4} className="px-6 py-12 text-center text-sm text-muted-foreground">Henüz tedarikçi yok.</td></tr>
+              )}
+              {suppliers.map((s: any) => (
+                <tr key={s.id} className="hover:bg-muted/50">
+                  <td className="px-3 md:px-6 py-3 md:py-4 font-medium">{s.name}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-sm text-muted-foreground">{s.phone || "—"}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-sm text-muted-foreground hidden sm:table-cell">{s.email || "—"}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-sm font-mono hidden md:table-cell">{s.tax_no || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </AppShell>
   );

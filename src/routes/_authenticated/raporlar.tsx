@@ -42,8 +42,7 @@ function RaporlarPage() {
 
   const { data } = useQuery({
     queryKey: ["reports", start, end],
-    queryFn: async () => { console.log("RAPOR CALISTI", start, end);
-      // 1. Satışları çek
+    queryFn: async () => {
       const { data: salesData } = await supabase
         .from("sales")
         .select("id, total, discount, payment_type, created_at, status, sale_items(qty, unit_price, parts(cost, name, sku))")
@@ -54,11 +53,9 @@ function RaporlarPage() {
       const sales = salesData || [];
       const items: any[] = sales.flatMap((s: any) => s.sale_items || []);
 
-      // Envanter değeri
       const { data: partsData } = await supabase.from("parts").select("stock, cost");
       const parts = partsData || [];
 
-      // Hesaplamalar
       const totalSales = sales.reduce((s: number, r: any) => s + Number(r.total), 0);
       const nakit = sales.filter((s: any) => s.payment_type === "nakit").reduce((s: number, r: any) => s + Number(r.total), 0);
       const kart = sales.filter((s: any) => s.payment_type === "kart").reduce((s: number, r: any) => s + Number(r.total), 0);
@@ -73,7 +70,6 @@ function RaporlarPage() {
       const profit = totalRevenue - totalCost;
       const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
 
-      // En çok satan parçalar
       const partMap = new Map<string, { name: string; sku: string; qty: number; revenue: number; cost: number }>();
       items.forEach((i: any) => {
         const key = i.parts?.sku || "—";
@@ -85,7 +81,6 @@ function RaporlarPage() {
       });
       const topParts = [...partMap.values()].sort((a, b) => b.qty - a.qty).slice(0, 10);
 
-      // Günlük satış
       const dailyMap = new Map<string, number>();
       sales.forEach((s: any) => {
         const day = s.created_at.slice(0, 10);
@@ -105,8 +100,8 @@ function RaporlarPage() {
     <AppShell title="Raporlar">
       <div className="space-y-6">
         <Card className="p-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex gap-1">
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-wrap gap-1">
               {(["hafta", "ay", "yil"] as Range[]).map((r) => (
                 <Button key={r} size="sm" variant={range === r ? "default" : "outline"} onClick={() => setRange(r)}>
                   {r === "hafta" ? "Bu Hafta" : r === "ay" ? "Bu Ay" : "Bu Yıl"}
@@ -115,34 +110,34 @@ function RaporlarPage() {
               <Button size="sm" variant={range === "ozel" ? "default" : "outline"} onClick={() => setRange("ozel")}>Özel</Button>
             </div>
             {range === "ozel" && (
-              <div className="flex items-center gap-2">
-                <Input type="date" className="w-40" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+              <div className="flex flex-wrap items-center gap-2">
+                <Input type="date" className="w-36" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
                 <span className="text-muted-foreground">—</span>
-                <Input type="date" className="w-40" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
+                <Input type="date" className="w-36" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
               </div>
             )}
           </div>
         </Card>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="p-5">
+          <Card className="p-4 md:p-5">
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Toplam Satış</p>
-            <p className="text-2xl font-bold">{fmt(data?.totalSales ?? 0)}</p>
+            <p className="text-xl md:text-2xl font-bold">{fmt(data?.totalSales ?? 0)}</p>
             <p className="text-xs text-muted-foreground mt-1">{data?.salesCount ?? 0} işlem</p>
           </Card>
-          <Card className="p-5">
+          <Card className="p-4 md:p-5">
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Brüt Kâr</p>
-            <p className={`text-2xl font-bold ${(data?.profit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+            <p className={`text-xl md:text-2xl font-bold ${(data?.profit ?? 0) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
               {fmt(data?.profit ?? 0)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">%{(data?.margin ?? 0).toFixed(1)} marj</p>
           </Card>
-          <Card className="p-5">
+          <Card className="p-4 md:p-5">
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Depo Değeri</p>
-            <p className="text-2xl font-bold">{fmt(data?.inventoryValue ?? 0)}</p>
+            <p className="text-xl md:text-2xl font-bold">{fmt(data?.inventoryValue ?? 0)}</p>
             <p className="text-xs text-muted-foreground mt-1">Maliyet bazında</p>
           </Card>
-          <Card className="p-5">
+          <Card className="p-4 md:p-5">
             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Ödeme Dağılımı</p>
             <div className="space-y-1 mt-1">
               <div className="flex justify-between text-xs"><span>Nakit</span><span className="font-medium">{fmt(data?.nakit ?? 0)}</span></div>
@@ -153,7 +148,7 @@ function RaporlarPage() {
         </div>
 
         {(data?.dailySales.length ?? 0) > 0 && (
-          <Card className="p-5">
+          <Card className="p-4 md:p-5">
             <p className="text-sm font-semibold mb-4">Günlük Satış Grafiği</p>
             <div className="flex items-end gap-1 h-32 overflow-x-auto">
               {data?.dailySales.map(([day, val]) => (
@@ -169,34 +164,36 @@ function RaporlarPage() {
         )}
 
         <Card className="overflow-hidden p-0">
-          <div className="px-6 py-4 border-b"><p className="font-semibold">En Çok Satan Parçalar</p></div>
-          <table className="w-full text-left">
-            <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-              <tr>
-                <th className="px-6 py-3">SKU</th>
-                <th className="px-6 py-3">Ürün</th>
-                <th className="px-6 py-3 text-right">Satılan Adet</th>
-                <th className="px-6 py-3 text-right">Ciro</th>
-                <th className="px-6 py-3 text-right">Kâr</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {(!data?.topParts || data.topParts.length === 0) && (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-muted-foreground">Henüz satış verisi yok.</td></tr>
-              )}
-              {data?.topParts.map((p) => (
-                <tr key={p.sku} className="hover:bg-muted/50">
-                  <td className="px-6 py-3 font-mono text-xs">{p.sku}</td>
-                  <td className="px-6 py-3 text-sm font-medium">{p.name}</td>
-                  <td className="px-6 py-3 text-right font-mono">{p.qty}</td>
-                  <td className="px-6 py-3 text-right font-semibold">{fmt(p.revenue)}</td>
-                  <td className={`px-6 py-3 text-right font-semibold ${p.revenue - p.cost >= 0 ? "text-emerald-600" : "text-destructive"}`}>
-                    {fmt(p.revenue - p.cost)}
-                  </td>
+          <div className="px-4 md:px-6 py-4 border-b"><p className="font-semibold">En Çok Satan Parçalar</p></div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+                <tr>
+                  <th className="px-3 md:px-6 py-3 hidden sm:table-cell">SKU</th>
+                  <th className="px-3 md:px-6 py-3">Ürün</th>
+                  <th className="px-3 md:px-6 py-3 text-right">Satılan Adet</th>
+                  <th className="px-3 md:px-6 py-3 text-right hidden sm:table-cell">Ciro</th>
+                  <th className="px-3 md:px-6 py-3 text-right">Kâr</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {(!data?.topParts || data.topParts.length === 0) && (
+                  <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-muted-foreground">Henüz satış verisi yok.</td></tr>
+                )}
+                {data?.topParts.map((p) => (
+                  <tr key={p.sku} className="hover:bg-muted/50">
+                    <td className="px-3 md:px-6 py-3 font-mono text-xs hidden sm:table-cell">{p.sku}</td>
+                    <td className="px-3 md:px-6 py-3 text-sm font-medium">{p.name}</td>
+                    <td className="px-3 md:px-6 py-3 text-right font-mono">{p.qty}</td>
+                    <td className="px-3 md:px-6 py-3 text-right font-semibold hidden sm:table-cell">{fmt(p.revenue)}</td>
+                    <td className={`px-3 md:px-6 py-3 text-right font-semibold ${p.revenue - p.cost >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                      {fmt(p.revenue - p.cost)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
     </AppShell>

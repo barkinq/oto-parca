@@ -178,7 +178,6 @@ function SatislarPage() {
       }));
       const { error: e2 } = await supabase.from("sale_items").insert(items);
       if (e2) throw e2;
-      // Stok hareketi kayıtları
       const movements = lines.map((l) => ({
         business_id: businessId,
         part_id: l.part_id,
@@ -205,14 +204,11 @@ function SatislarPage() {
 
   const cancel = useMutation({
     mutationFn: async (sale: any) => {
-      // Satış kalemlerini çek
       const { data: items, error: ie } = await supabase
         .from("sale_items")
         .select("part_id, qty, parts(stock)")
         .eq("sale_id", sale.id);
       if (ie) throw ie;
-
-      // Stokları geri ekle
       for (const item of items || []) {
         const currentStock = (item.parts as any)?.stock ?? 0;
         const { error } = await supabase
@@ -221,8 +217,6 @@ function SatislarPage() {
           .eq("id", item.part_id);
         if (error) throw error;
       }
-
-      // Veresiye ise müşteri bakiyesini düzelt
       const outstanding = Number(sale.total) - Number(sale.paid_amount);
       if (sale.payment_type === "veresiye" && outstanding > 0 && sale.customer_id) {
         const { data: cust } = await supabase
@@ -231,7 +225,6 @@ function SatislarPage() {
           await supabase.from("customers")
             .update({ balance: Math.max(0, Number(cust.balance) - outstanding) })
             .eq("id", sale.customer_id);
-          // İptal işlemi kaydı
           await supabase.from("customer_transactions").insert({
             business_id: businessId,
             customer_id: sale.customer_id,
@@ -242,8 +235,6 @@ function SatislarPage() {
           });
         }
       }
-
-      // Stok iade hareketi kayıtları
       const returnMovements = (items || []).map((item: any) => ({
         business_id: businessId,
         part_id: item.part_id,
@@ -255,7 +246,6 @@ function SatislarPage() {
       if (returnMovements.length > 0) {
         await supabase.from("stock_movements").insert(returnMovements);
       }
-      // Satışı iptal et
       const { error } = await supabase
         .from("sales").update({ status: "iptal" }).eq("id", sale.id);
       if (error) throw error;
@@ -329,18 +319,18 @@ function SatislarPage() {
             <div className="border rounded-md divide-y">
               {lines.length === 0 && <div className="p-6 text-center text-sm text-muted-foreground">Henüz parça eklenmedi.</div>}
               {lines.map((l, i) => (
-                <div key={l.part_id} className="flex items-center gap-3 p-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{l.name}</p>
+                <div key={l.part_id} className="flex items-center gap-2 p-3 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{l.name}</p>
                     <p className="text-xs font-mono text-muted-foreground">{l.sku}</p>
                   </div>
                   <Input type="number" min="1" value={l.qty}
                     onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, qty: Math.max(1, Number(e.target.value)) } : x))}
-                    className="w-20" />
+                    className="w-16" />
                   <Input type="number" step="0.01" value={l.unit_price}
                     onChange={(e) => setLines(lines.map((x, j) => j === i ? { ...x, unit_price: Number(e.target.value) } : x))}
-                    className="w-28" />
-                  <span className="w-28 text-right font-semibold">{fmt(l.qty * l.unit_price)}</span>
+                    className="w-24" />
+                  <span className="w-24 text-right font-semibold text-sm">{fmt(l.qty * l.unit_price)}</span>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setLines(lines.filter((_, j) => j !== i))}>
                     <Trash2 className="size-4" />
                   </Button>
@@ -350,7 +340,7 @@ function SatislarPage() {
 
             <Textarea placeholder="Notlar..." value={notes} onChange={(e) => setNotes(e.target.value)} />
 
-            <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2 border-t">
               <div className="space-y-2">
                 <Label>İndirim (₺)</Label>
                 <Input type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
@@ -365,7 +355,7 @@ function SatislarPage() {
                 </select>
               </div>
               {paymentType === "veresiye" && (
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2 md:col-span-1">
                   <Label>Peşin Ödenen (₺)</Label>
                   <Input type="number" step="0.01" min="0" placeholder="0" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} />
                 </div>
@@ -401,78 +391,80 @@ function SatislarPage() {
       </Dialog>
     }>
       <Card className="overflow-hidden p-0">
-        <table className="w-full text-left">
-          <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-            <tr>
-              <th className="px-6 py-4">Fiş No</th>
-              <th className="px-6 py-4">Tarih</th>
-              <th className="px-6 py-4">Müşteri</th>
-              <th className="px-6 py-4">Araç</th>
-              <th className="px-6 py-4 text-right">Tutar</th>
-              <th className="px-6 py-4">Ödeme</th>
-              <th className="px-6 py-4">Durum</th>
-              <th className="px-6 py-4"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {sales.length === 0 && (
-              <tr><td colSpan={8} className="px-6 py-16 text-center">
-                <ShoppingCart className="size-10 mx-auto text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">Henüz satış kaydı yok.</p>
-              </td></tr>
-            )}
-            {sales.map((s: any) => (
-              <tr key={s.id} className={`hover:bg-muted/50 ${s.status === "iptal" ? "opacity-60" : ""}`}>
-                <td className="px-6 py-4 font-mono text-sm">#{String(s.sale_no).padStart(5, "0")}</td>
-                <td className="px-6 py-4 text-sm">{new Date(s.created_at).toLocaleString("tr-TR")}</td>
-                <td className="px-6 py-4 text-sm">{s.customers?.full_name || "—"}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">{s.vehicles?.plate || "—"}</td>
-                <td className="px-6 py-4 text-right font-semibold">{fmt(Number(s.total))}</td>
-                <td className="px-6 py-4 text-sm text-muted-foreground">
-                  {s.payment_type === "nakit" ? "Nakit" : s.payment_type === "kart" ? "Kart" : "Veresiye"}
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${statusBadge(s.status)}`}>
-                    {statusLabel(s.status)}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => printReceipt(s.id)} title="Fiş Yazdır">
-                      <Printer className="size-4" />
-                    </Button>
-                    {s.status === "tamamlandi" && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" title="İptal Et">
-                            <XCircle className="size-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Satışı iptal etmek istediğinize emin misiniz?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              #{String(s.sale_no).padStart(5, "0")} nolu satış iptal edilecek. Stoklar geri eklenecek
-                              {s.payment_type === "veresiye" ? ", müşteri bakiyesi düzeltilecek" : ""}. Bu işlem geri alınamaz.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => cancel.mutate(s)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                              Evet, İptal Et
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+              <tr>
+                <th className="px-3 md:px-6 py-4">Fiş No</th>
+                <th className="px-3 md:px-6 py-4">Tarih</th>
+                <th className="px-3 md:px-6 py-4 hidden sm:table-cell">Müşteri</th>
+                <th className="px-3 md:px-6 py-4 hidden md:table-cell">Araç</th>
+                <th className="px-3 md:px-6 py-4 text-right">Tutar</th>
+                <th className="px-3 md:px-6 py-4 hidden sm:table-cell">Ödeme</th>
+                <th className="px-3 md:px-6 py-4">Durum</th>
+                <th className="px-3 md:px-6 py-4"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {sales.length === 0 && (
+                <tr><td colSpan={8} className="px-6 py-16 text-center">
+                  <ShoppingCart className="size-10 mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">Henüz satış kaydı yok.</p>
+                </td></tr>
+              )}
+              {sales.map((s: any) => (
+                <tr key={s.id} className={`hover:bg-muted/50 ${s.status === "iptal" ? "opacity-60" : ""}`}>
+                  <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-sm">#{String(s.sale_no).padStart(5, "0")}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-sm">{new Date(s.created_at).toLocaleString("tr-TR")}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-sm hidden sm:table-cell">{s.customers?.full_name || "—"}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-sm text-muted-foreground hidden md:table-cell">{s.vehicles?.plate || "—"}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-right font-semibold">{fmt(Number(s.total))}</td>
+                  <td className="px-3 md:px-6 py-3 md:py-4 text-sm text-muted-foreground hidden sm:table-cell">
+                    {s.payment_type === "nakit" ? "Nakit" : s.payment_type === "kart" ? "Kart" : "Veresiye"}
+                  </td>
+                  <td className="px-3 md:px-6 py-3 md:py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${statusBadge(s.status)}`}>
+                      {statusLabel(s.status)}
+                    </span>
+                  </td>
+                  <td className="px-3 md:px-6 py-3 md:py-4">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => printReceipt(s.id)} title="Fiş Yazdır">
+                        <Printer className="size-4" />
+                      </Button>
+                      {s.status === "tamamlandi" && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" title="İptal Et">
+                              <XCircle className="size-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Satışı iptal etmek istediğinize emin misiniz?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                #{String(s.sale_no).padStart(5, "0")} nolu satış iptal edilecek. Stoklar geri eklenecek
+                                {s.payment_type === "veresiye" ? ", müşteri bakiyesi düzeltilecek" : ""}. Bu işlem geri alınamaz.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => cancel.mutate(s)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Evet, İptal Et
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </AppShell>
   );
