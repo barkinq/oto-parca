@@ -166,14 +166,14 @@ function RaporlarPage() {
         <Card className="overflow-hidden p-0">
           <div className="px-4 md:px-6 py-4 border-b"><p className="font-semibold">En Çok Satan Parçalar</p></div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left min-w-[320px]">
               <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
                 <tr>
                   <th className="px-3 md:px-6 py-3 hidden sm:table-cell">SKU</th>
                   <th className="px-3 md:px-6 py-3">Ürün</th>
-                  <th className="px-3 md:px-6 py-3 text-right">Satılan Adet</th>
+                  <th className="px-3 md:px-6 py-3 text-right w-20">Adet</th>
                   <th className="px-3 md:px-6 py-3 text-right hidden sm:table-cell">Ciro</th>
-                  <th className="px-3 md:px-6 py-3 text-right">Kâr</th>
+                  <th className="px-3 md:px-6 py-3 text-right w-28">Kâr</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

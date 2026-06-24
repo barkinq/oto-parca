@@ -34,7 +34,6 @@ function TerminalPage() {
   const qtyRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const lastKeyRef = useRef<string | null>(null);
 
-  // Focus newly added row's code input
   useEffect(() => {
     if (lastKeyRef.current && codeRefs.current[lastKeyRef.current]) {
       codeRefs.current[lastKeyRef.current]?.focus();
@@ -119,7 +118,7 @@ function TerminalPage() {
 
   return (
     <AppShell
-      title="Terminal · Toplu Stok Girişi"
+      title="Toplu Stok Girişi"
       action={
         <Button onClick={() => apply.mutate()} disabled={apply.isPending || valid.length === 0}>
           {apply.isPending ? "Kaydediliyor..." : `Stoğu Güncelle (${valid.length})`}
@@ -127,97 +126,111 @@ function TerminalPage() {
       }
     >
       <div className="space-y-4">
-        <Card className="p-4 flex flex-wrap items-end gap-6">
+        <Card className="p-4 flex flex-wrap items-start gap-4">
           <div>
             <Label className="block mb-2">Mod</Label>
             <div className="inline-flex rounded-md border border-input overflow-hidden">
               <button
                 type="button"
                 onClick={() => setMode("add")}
-                className={`px-4 py-2 text-sm font-medium ${mode === "add" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                className={`px-3 py-2 text-sm font-medium ${mode === "add" ? "bg-primary text-primary-foreground" : "bg-background"}`}
               >
                 + Mevcut stoğa ekle
               </button>
               <button
                 type="button"
                 onClick={() => setMode("set")}
-                className={`px-4 py-2 text-sm font-medium border-l border-input ${mode === "set" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                className={`px-3 py-2 text-sm font-medium border-l border-input ${mode === "set" ? "bg-primary text-primary-foreground" : "bg-background"}`}
               >
                 = Stoğu eşitle
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <TerminalIcon className="size-4" />
-            Kod yazıp <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-xs">Enter</kbd>, miktar yazıp tekrar
-            <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-xs">Enter</kbd> — yeni satır otomatik açılır.
+          <div className="flex items-start gap-2 text-sm text-muted-foreground">
+            <TerminalIcon className="size-4 mt-0.5 shrink-0" />
+            <span>
+              Kod yazıp <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-xs">Enter</kbd>, miktar yazıp tekrar
+              <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono text-xs">Enter</kbd> — yeni satır otomatik açılır.
+            </span>
           </div>
           {notFoundCount > 0 && (
-            <div className="ml-auto text-sm text-amber-700 flex items-center gap-1.5">
+            <div className="text-sm text-amber-700 flex items-center gap-1.5">
               <AlertCircle className="size-4" /> {notFoundCount} kod bulunamadı
             </div>
           )}
         </Card>
 
         <Card className="p-0 overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
-              <tr>
-                <th className="px-4 py-3 w-12">#</th>
-                <th className="px-4 py-3">Kod (SKU / Barkod / OEM)</th>
-                <th className="px-4 py-3">Ürün</th>
-                <th className="px-4 py-3 w-28 text-right">Mevcut</th>
-                <th className="px-4 py-3 w-32">Miktar</th>
-                <th className="px-4 py-3 w-12"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.map((r, i) => (
-                <tr key={r.key} className={r.status === "notfound" ? "bg-destructive/5" : ""}>
-                  <td className="px-4 py-2 text-xs font-mono text-muted-foreground">{i + 1}</td>
-                  <td className="px-4 py-2">
-                    <Input
-                      ref={(el) => { codeRefs.current[r.key] = el; }}
-                      value={r.code}
-                      onChange={(e) => updateRow(r.key, { code: e.target.value, status: "pending" })}
-                      onBlur={(e) => lookupCode(r.key, e.target.value.trim())}
-                      onKeyDown={(e) => onCodeKey(e, r.key)}
-                      placeholder="Kod yazın veya barkod okutun..."
-                      className="font-mono"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {r.status === "found" && (
-                      <span className="inline-flex items-center gap-1.5 text-emerald-700">
-                        <CheckCircle2 className="size-4" /> {r.name}
-                      </span>
-                    )}
-                    {r.status === "notfound" && (
-                      <span className="text-destructive text-xs">Bulunamadı</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono text-sm">
-                    {r.currentStock ?? "—"}
-                  </td>
-                  <td className="px-4 py-2">
-                    <Input
-                      ref={(el) => { qtyRefs.current[r.key] = el; }}
-                      type="number"
-                      min="1"
-                      value={r.qty}
-                      onChange={(e) => updateRow(r.key, { qty: e.target.value })}
-                      onKeyDown={(e) => onQtyKey(e, r.key)}
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => removeRow(r.key)}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-muted text-muted-foreground text-xs uppercase font-bold tracking-wider">
+                <tr>
+                  <th className="px-3 md:px-4 py-3 w-10">#</th>
+                  <th className="px-3 md:px-4 py-3">Kod (SKU / Barkod / OEM)</th>
+                  <th className="px-3 md:px-4 py-3 hidden sm:table-cell">Ürün</th>
+                  <th className="px-3 md:px-4 py-3 text-right hidden sm:table-cell">Mevcut</th>
+                  <th className="px-3 md:px-4 py-3 w-24">Miktar</th>
+                  <th className="px-3 md:px-4 py-3 w-10"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map((r, i) => (
+                  <tr key={r.key} className={r.status === "notfound" ? "bg-destructive/5" : ""}>
+                    <td className="px-3 md:px-4 py-2 text-xs font-mono text-muted-foreground">{i + 1}</td>
+                    <td className="px-3 md:px-4 py-2">
+                      <Input
+                        ref={(el) => { codeRefs.current[r.key] = el; }}
+                        value={r.code}
+                        onChange={(e) => updateRow(r.key, { code: e.target.value, status: "pending" })}
+                        onBlur={(e) => lookupCode(r.key, e.target.value.trim())}
+                        onKeyDown={(e) => onCodeKey(e, r.key)}
+                        placeholder="Kod..."
+                        className="font-mono text-sm"
+                      />
+                      {/* Mobilde ürün adı kod altında */}
+                      {r.status === "found" && (
+                        <p className="text-xs text-emerald-700 mt-1 sm:hidden flex items-center gap-1">
+                          <CheckCircle2 className="size-3" /> {r.name} ({r.currentStock ?? "—"})
+                        </p>
+                      )}
+                      {r.status === "notfound" && (
+                        <p className="text-xs text-destructive mt-1 sm:hidden">Bulunamadı</p>
+                      )}
+                    </td>
+                    <td className="px-3 md:px-4 py-2 text-sm hidden sm:table-cell">
+                      {r.status === "found" && (
+                        <span className="inline-flex items-center gap-1.5 text-emerald-700">
+                          <CheckCircle2 className="size-4" /> {r.name}
+                        </span>
+                      )}
+                      {r.status === "notfound" && (
+                        <span className="text-destructive text-xs">Bulunamadı</span>
+                      )}
+                    </td>
+                    <td className="px-3 md:px-4 py-2 text-right font-mono text-sm hidden sm:table-cell">
+                      {r.currentStock ?? "—"}
+                    </td>
+                    <td className="px-3 md:px-4 py-2">
+                      <Input
+                        ref={(el) => { qtyRefs.current[r.key] = el; }}
+                        type="number"
+                        min="1"
+                        value={r.qty}
+                        onChange={(e) => updateRow(r.key, { qty: e.target.value })}
+                        onKeyDown={(e) => onQtyKey(e, r.key)}
+                        className="w-20"
+                      />
+                    </td>
+                    <td className="px-3 md:px-4 py-2 text-right">
+                      <Button variant="ghost" size="sm" onClick={() => removeRow(r.key)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div className="p-3 border-t bg-muted/30">
             <Button variant="outline" size="sm" onClick={addRow}>+ Satır Ekle</Button>
           </div>
