@@ -20,10 +20,8 @@ import { Route as AuthenticatedSatislarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRaporlarRouteImport } from './routes/_authenticated/raporlar'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedMusterilerRouteImport } from './routes/_authenticated/musteriler'
-import { Route as AuthenticatedKullanicilarRouteImport } from './routes/_authenticated/kullanicilar'
 import { Route as AuthenticatedBarkodRouteImport } from './routes/_authenticated/barkod'
 import { Route as AuthenticatedAyarlarRouteImport } from './routes/_authenticated/ayarlar'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -80,12 +78,6 @@ const AuthenticatedMusterilerRoute = AuthenticatedMusterilerRouteImport.update({
   path: '/musteriler',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedKullanicilarRoute =
-  AuthenticatedKullanicilarRouteImport.update({
-    id: '/kullanicilar',
-    path: '/kullanicilar',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedBarkodRoute = AuthenticatedBarkodRouteImport.update({
   id: '/barkod',
   path: '/barkod',
@@ -96,19 +88,12 @@ const AuthenticatedAyarlarRoute = AuthenticatedAyarlarRouteImport.update({
   path: '/ayarlar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/admin': typeof AuthenticatedAdminRoute
   '/ayarlar': typeof AuthenticatedAyarlarRoute
   '/barkod': typeof AuthenticatedBarkodRoute
-  '/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/musteriler': typeof AuthenticatedMusterilerRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/raporlar': typeof AuthenticatedRaporlarRoute
@@ -121,10 +106,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/admin': typeof AuthenticatedAdminRoute
   '/ayarlar': typeof AuthenticatedAyarlarRoute
   '/barkod': typeof AuthenticatedBarkodRoute
-  '/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/musteriler': typeof AuthenticatedMusterilerRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/raporlar': typeof AuthenticatedRaporlarRoute
@@ -139,10 +122,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/ayarlar': typeof AuthenticatedAyarlarRoute
   '/_authenticated/barkod': typeof AuthenticatedBarkodRoute
-  '/_authenticated/kullanicilar': typeof AuthenticatedKullanicilarRoute
   '/_authenticated/musteriler': typeof AuthenticatedMusterilerRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/_authenticated/raporlar': typeof AuthenticatedRaporlarRoute
@@ -157,10 +138,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/admin'
     | '/ayarlar'
     | '/barkod'
-    | '/kullanicilar'
     | '/musteriler'
     | '/panel'
     | '/raporlar'
@@ -173,10 +152,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/admin'
     | '/ayarlar'
     | '/barkod'
-    | '/kullanicilar'
     | '/musteriler'
     | '/panel'
     | '/raporlar'
@@ -190,10 +167,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/_authenticated/admin'
     | '/_authenticated/ayarlar'
     | '/_authenticated/barkod'
-    | '/_authenticated/kullanicilar'
     | '/_authenticated/musteriler'
     | '/_authenticated/panel'
     | '/_authenticated/raporlar'
@@ -289,13 +264,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMusterilerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/kullanicilar': {
-      id: '/_authenticated/kullanicilar'
-      path: '/kullanicilar'
-      fullPath: '/kullanicilar'
-      preLoaderRoute: typeof AuthenticatedKullanicilarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/barkod': {
       id: '/_authenticated/barkod'
       path: '/barkod'
@@ -310,21 +278,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAyarlarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAyarlarRoute: typeof AuthenticatedAyarlarRoute
   AuthenticatedBarkodRoute: typeof AuthenticatedBarkodRoute
-  AuthenticatedKullanicilarRoute: typeof AuthenticatedKullanicilarRoute
   AuthenticatedMusterilerRoute: typeof AuthenticatedMusterilerRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
   AuthenticatedRaporlarRoute: typeof AuthenticatedRaporlarRoute
@@ -336,10 +295,8 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAyarlarRoute: AuthenticatedAyarlarRoute,
   AuthenticatedBarkodRoute: AuthenticatedBarkodRoute,
-  AuthenticatedKullanicilarRoute: AuthenticatedKullanicilarRoute,
   AuthenticatedMusterilerRoute: AuthenticatedMusterilerRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
   AuthenticatedRaporlarRoute: AuthenticatedRaporlarRoute,

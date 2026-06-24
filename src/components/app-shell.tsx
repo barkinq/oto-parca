@@ -30,7 +30,6 @@ const navItems = [
   { to: "/musteriler", label: "Müşteriler", icon: Users, adminOnly: false },
   { to: "/tedarikciler", label: "Tedarikçiler", icon: Truck, adminOnly: false },
   { to: "/raporlar", label: "Raporlar", icon: BarChart3, adminOnly: false },
-  { to: "/kullanicilar", label: "Kullanıcılar", icon: ShieldCheck, adminOnly: true },
   { to: "/ayarlar", label: "Ayarlar", icon: Settings, adminOnly: true },
 ] as const;
 
